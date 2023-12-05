@@ -5,7 +5,6 @@ import math
 import numpy as np
 from operator import mul
 import os
-import statistics
 import time
 
 
@@ -107,9 +106,8 @@ def gen_constraints(agent_num, task_num, power=1, a_min_edge=2, t_max_edge=5):
     return a_taskInds, t_agents
 
 
-def gen_agents(
-    a_taskInds, tasks, max_capNum, capabilities, max_capVal
-):  # m is the number of task, max_capNum is the maximum number of cap a task could require, max_capVal is the maximum capability value
+def gen_agents(a_taskInds, tasks, max_capNum, capabilities, max_capVal):  
+    # m is the number of task, max_capNum is the maximum number of cap a task could require, max_capVal is the maximum capability value
     """
     Generate agents, each agent is represented by a list of capabilities it has and a list of contribution values for each capability
     :param: `a_taskInds`: the list of list of tasks each agent could work on
@@ -124,7 +122,7 @@ def gen_agents(
         t_caps = [tasks[t_id] for t_id in a_taskInd]  # lists of caps that each task agent could perform
 
         caps_union = set(itertools.chain(*t_caps))  # union of unique caps of tasks that agent could perform.
-        
+
         a_cap_num = np.random.randint(
             min(3, max_capNum, len(caps_union)), 
             min(len(caps_union), max_capNum) + 1
@@ -132,13 +130,13 @@ def gen_agents(
 
         a_caps = set([np.random.choice(t_c) for t_c in t_caps])  # initial draw to guarantee the agent has some contribution to each of the task that the agent has the capability to perform.
 
+        # Randomly draw the remaining capabilities, possibly none
         remaining_choices = list(caps_union.difference(a_caps))
         if remaining_choices != []:
-            update_len = max(0, a_cap_num - len(a_taskInd))
             a_caps.update(
                 np.random.choice(
                     remaining_choices,
-                    min(len(remaining_choices), update_len),
+                    min(max(0, a_cap_num - len(a_taskInd)), len(remaining_choices)),
                     replace=False,
                 )
             )
@@ -159,21 +157,27 @@ def gen_agents(
 
 def upperBound(capabilities, tasks, agents):
     """
-    Calculate the upper bound of the system reward
+    Calculate the upper bound of the system reward, where the system consists of tasks and agents with constraints.
+
+    This mathematical upper bound is calculated by sorting the agents based on their contribution values for each capability, in descending order, then count `m`, the number of tasks that require each capability, and sum up the contribution values of the top `m` agents for each capability.
+    
     :param: `capabilities`: the list of capabilities
     :param: `tasks`: the list of tasks
     :param: `agents`: the list of agents
     :return: the upper bound of the system reward
     """
-    cap_ranks = [sorted([a[c] for a in agents], reverse=True) for c in capabilities]
+    cap_ranked = [sorted([a[c] for a in agents], reverse=True) for c in capabilities]
     cap_req_all = list(itertools.chain(*tasks))
     cap_req_num = [cap_req_all.count(c) for c in capabilities]
-    return sum([sum(cap_ranks[c][: cap_req_num[c]]) for c in capabilities])
+    return sum([sum(cap_ranked[c][:cap_req_num[c]]) for c in capabilities])
 
 
 def upperBound_ver2(capabilities, tasks, agents, constraints):
     """
-    Calculate the upper bound of the system reward
+    Calculate the upper bound of the system reward, where the system consists of tasks and agents with constraints.
+
+    This upper bound is calculated by sorting the agents based on their contribution values for each capability, in descending order, then iteratively allocate the top agents to the tasks that require that capability.
+
     :param: `capabilities`: the list of capabilities
     :param: `tasks`: the list of tasks
     :param: `agents`: the list of agents
@@ -188,31 +192,31 @@ def upperBound_ver2(capabilities, tasks, agents, constraints):
 
     sys_rewards = 0
     for c in capabilities:
-        a_cap_vals = [agents[i][c] for i in range(0, agent_num)]
-        a_cap_tasks = [
-            [j for j in a_taskInds[i] if j != task_num and c in tasks[j]]
-            for i in range(0, agent_num)
-        ]
+        
+        a_cap_vals = [agent[c] for agent in agents]
 
-        cap_rank_pos = np.argsort(a_cap_vals)
+        # the list of tasks that each agent has the capability to perform and that require the capability c
+        a_cap_tasks = [[t_id for t_id in a_taskInd if t_id != task_num and c in tasks[t_id]] for a_taskInd in a_taskInds] 
 
-        a_cap_vals_ordered = [0 for i in range(0, agent_num)]
-        a_cap_tasks_ordered = [[] for i in range(0, agent_num)]
-        for p in range(0, len(cap_rank_pos)):
-            a_cap_vals_ordered[p] = a_cap_vals[cap_rank_pos[p]]
-            a_cap_tasks_ordered[p] = a_cap_tasks[cap_rank_pos[p]]
+        # sort the agents based on their contribution values for the capability c, in descending order
+        cap_rank_pos = np.argsort(a_cap_vals)[::-1]
 
-        cap_rewards = a_cap_vals_ordered[agent_num - 1]
-        cap_tasks = set(a_cap_tasks_ordered[agent_num - 1])
+        a_cap_vals_ordered = [0] * agent_num
+        a_cap_tasks_ordered = [[]] * agent_num
+        for p, pos in enumerate(cap_rank_pos):
+            a_cap_vals_ordered[p] = a_cap_vals[pos]
+            a_cap_tasks_ordered[p] = a_cap_tasks[pos]
+
+        cap_rewards = a_cap_vals_ordered[0]
+        cap_tasks = set(a_cap_tasks_ordered[0])
         a_cap_num = 1
-        for a_iter in range(agent_num - 1, 0, -1):
-            cap_tasks = cap_tasks.union(set(a_cap_tasks_ordered[a_iter - 1]))
+        for a_iter in range(1, agent_num):
+            cap_tasks = cap_tasks.union(set(a_cap_tasks_ordered[a_iter]))
             if len(cap_tasks) > a_cap_num:
-                cap_rewards += a_cap_vals_ordered[a_iter - 1]
+                cap_rewards += a_cap_vals_ordered[a_iter]
                 a_cap_num += 1
-            if (
-                a_cap_num >= cap_req_num[c]
-            ):  # if they got enough agents to contribute the number of required cap c
+            # break if they got enough agents to contribute the number of required cap c
+            if (a_cap_num >= cap_req_num[c]):  
                 break
         sys_rewards += cap_rewards
     return sys_rewards
@@ -230,51 +234,31 @@ def task_reward(task, agents, gamma=1):
     if agents == []:
         return 0
     else:
-        return sum([max([agent[cap] for agent in agents]) for cap in task]) * (
-            gamma ** len(agents)
-        )
+        return sum([max([agent[c] for agent in agents]) for c in task]) * (gamma ** len(agents))
 
 
 def sys_reward_agents(agents, tasks, alloc, gamma=1):
     # alloc is a vector of size M each element indicate which task the agent is allocated to
     return sum(
-        task_reward(
-            task,
-            [
-                agent
-                for agent, coalition_id in zip(agents, alloc)
-                if coalition_id == task_id
-            ],
-            gamma,
-        )
-        for task_id, task in enumerate(tasks)
+        task_reward(task, [agent for a_id, agent in enumerate(agents) if alloc[a_id] == t_id], gamma)
+        for t_id, task in enumerate(tasks)
     )
 
 
 def sys_rewards_tasks(tasks, agents, coalition_structure, gamma=1):
     return sum(
-        task_reward(task, [agents[agent_id] for agent_id in coalition], gamma)
-        for task, coalition in zip(tasks, coalition_structure)
+        task_reward(task, [agents[a_id] for a_id in coalition_structure[t_id]], gamma)
+        for t_id, task in enumerate(tasks) 
     )
 
 
-def agent_con(
-    agents,
-    tasks,
-    query_agentIndex,
-    query_taskIndex,
-    cur_task_alloc,
-    constraints,
-    gamma=1,
-):
+def agent_con(agents, tasks, query_agentIndex, query_taskIndex, cur_task_alloc, constraints, gamma=1):
     a_taskInds = constraints[0]
     if query_taskIndex == len(tasks):
         return 0
     if query_taskIndex not in a_taskInds[query_agentIndex]:
         return 0
-    cur_reward = task_reward(
-        tasks[query_taskIndex], [agents[i] for i in cur_task_alloc], gamma
-    )
+    cur_reward = task_reward(tasks[query_taskIndex], [agents[a_id] for a_id in cur_task_alloc], gamma)
     if query_agentIndex in cur_task_alloc:
         agents_list = [agents[i] for i in cur_task_alloc if i != query_agentIndex]
         return cur_reward - task_reward(tasks[query_taskIndex], agents_list, gamma)
@@ -291,7 +275,7 @@ def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[])
     task_num = len(tasks)
     alloc = [task_num] * agent_num  # each indicate the current task that agent i is allocated to, if = N, means not allocated
     if coalition_structure == []:
-        coalition_structure = [] * (task_num + 1)  # current coalition structure, the last one is dummy coalition
+        coalition_structure = [[]] * (task_num + 1)  # current coalition structure, the last one is dummy coalition
         cur_con = [0] * agent_num
     else:
         coalition_structure.append([])
@@ -299,16 +283,8 @@ def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[])
             for a_id in coalition_structure[t_id]:
                 alloc[a_id] = t_id
         cur_con = [
-            agent_con(
-                agents,
-                tasks,
-                a_id,
-                a,
-                coalition_structure[a],
-                constraints,
-                gamma,
-            )
-            for a_id, a in enumerate(alloc)
+            agent_con(agents, tasks, a_id, t_id, coalition_structure[t_id], constraints, gamma)
+            for a_id, t_id in enumerate(alloc)
         ]
 
     task_cons = [

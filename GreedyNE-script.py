@@ -1,4 +1,5 @@
 from GreedyNE import * 
+import statistics
 
 if __name__ == "__main__":
     run_num = 1000
