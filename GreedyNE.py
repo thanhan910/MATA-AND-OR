@@ -166,10 +166,11 @@ def upperBound(capabilities, tasks, agents):
     :param: `agents`: the list of agents
     :return: the upper bound of the system reward
     """
-    cap_ranked = [sorted([a[c] for a in agents], reverse=True) for c in capabilities]
-    cap_req_all = list(itertools.chain(*tasks))
-    cap_req_num = [cap_req_all.count(c) for c in capabilities]
-    return sum([sum(cap_ranked[c][:cap_req_num[c]]) for c in capabilities])
+    cap_ranked = [sorted([a[c] for a in agents], reverse=True) for c in capabilities] # Time complexity: O(len(capabilities) * log(len(capabilities)) * len(agents))
+    cap_req_all = list(itertools.chain(*tasks)) # Time complexity: O(size of tasks capabilities combined), around O(len(tasks) * len(capabilities))
+    cap_req_num = [cap_req_all.count(c) for c in capabilities] # Time complexity: O(len(cap_req_all) * len(capabilities)). However, can be optimized to O(len(cap_req_all)).
+    return sum([sum(cap_ranked[c][:cap_req_num[c]]) for c in capabilities]) # Time complexity: O(len(cap_req_all))
+    # Evaluated time complexity: max(O(len(capabilities) * log(len(capabilities)) * len(agents)), O(len(tasks) * len(capabilities)))
 
 
 def upperBound_ver2(capabilities, tasks, agents, constraints):
@@ -177,6 +178,8 @@ def upperBound_ver2(capabilities, tasks, agents, constraints):
     Calculate the upper bound of the system reward, where the system consists of tasks and agents with constraints.
 
     This upper bound is calculated by sorting the agents based on their contribution values for each capability, in descending order, then iteratively allocate the top agents to the tasks that require that capability.
+
+    This allows for a more precise upper bound than upperBound, since it takes into account the `constraints`: the top agents might only be able to work on the same limited tasks.
 
     :param: `capabilities`: the list of capabilities
     :param: `tasks`: the list of tasks
