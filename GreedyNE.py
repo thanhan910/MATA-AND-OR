@@ -357,9 +357,9 @@ def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[])
         allocation_structure[a_index] = t_index
         coalition_structure[t_index].append(a_index)
 
+        # update agents in the new coalition
         affected_a_indexes = []
         affected_t_indexes = []
-        # update agents in the new coalition
         if t_index != task_num:
             affected_a_indexes.extend(coalition_structure[t_index])
             affected_t_indexes.append(t_index)
@@ -637,17 +637,7 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
             if flag:  # task j sending the same info
                 r_flags[j] = True
 
-    return resultCal(
-        agents,
-        tasks,
-        constraints,
-        r_msgs,
-        q_msgs,
-        iteration,
-        iter_over,
-        converge,
-        gamma,
-    )
+    return resultCal(agents, tasks, constraints, r_msgs, q_msgs, iteration, iter_over, converge, gamma)
 
 
 def OPD(agents, tasks, constraints, gamma):
@@ -657,8 +647,8 @@ def OPD(agents, tasks, constraints, gamma):
     a_taskInds = [list(con) for con in constraints[0]]
     t_agentInds = [list(con) for con in constraints[1]]
 
-    a_ubs = [[0 for j in a_taskInds[i]] for i in range(0, agent_num)]
-    a_lbs = [[0 for j in a_taskInds[i]] for i in range(0, agent_num)]
+    a_ubs = [[0] * a_taskInds[i] for i in range(0, agent_num)]
+    a_lbs = [[0] * a_taskInds[i] for i in range(0, agent_num)]
 
     for j in range(0, task_num):
         linked_agentInds = t_agentInds[j]
@@ -715,6 +705,9 @@ def OPD(agents, tasks, constraints, gamma):
 
 
 def random(agents, tasks, constraints, gamma=1):
+    '''
+    Randomly allocate tasks to agents
+    '''
     task_num = len(tasks)
     agent_num = len(agents)
     a_taskInds = constraints[0]
@@ -722,13 +715,13 @@ def random(agents, tasks, constraints, gamma=1):
     return alloc, sys_reward_agents(agents, tasks, alloc, gamma)
 
 
-def alloc_to_CS(tasks, alloc):
+def convert_alloc_to_CS(tasks, allocation_structure):
     task_num = len(tasks)
-    CS = [[] for j in range(0, len(tasks))]
-    for i in range(0, len(alloc)):
-        if alloc[i] < task_num:  # means allocated (!=task_num)
-            CS[alloc[i]].append(i)
-    return CS
+    coalition_structure = [[]] * task_num
+    for i, j in enumerate(allocation_structure):
+        if j < task_num:  # means allocated (!=task_num)
+            coalition_structure[j].append(i)
+    return coalition_structure
 
 
 def append_record(record, filename, typ):
