@@ -467,7 +467,7 @@ def resultCal(agents, tasks, constraints, r_msgs, q_msgs, iteration, iter_over, 
 def FMS(agents, tasks, constraints, gamma, time_bound=500):
     converge = False
     iter_over = False
-    start_time = time.time()
+    start_time = time.perf_counter()
     a_taskInds = constraints[0]
     t_agentInds = constraints[1]
     task_num = len(tasks)
@@ -491,7 +491,7 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
 
     iteration = 0
     while True:
-        if time.time() - start_time >= time_bound:
+        if time.perf_counter() - start_time >= time_bound:
             return resultCal(
                 agents,
                 tasks,
@@ -528,7 +528,7 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
             flag = True
             for t_key in linked_taskInds:
                 ####### check time bound
-                if time.time() - start_time >= time_bound:
+                if time.perf_counter() - start_time >= time_bound:
                     return resultCal(
                         agents,
                         tasks,
@@ -586,7 +586,7 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
             if flag:  # agent i sending the same info
                 q_flags[i] = True
 
-        if time.time() - start_time >= time_bound:
+        if time.perf_counter() - start_time >= time_bound:
             break
         ###################### SAME thing, using comprehension
         #             msgs = {t_key:{d_key:sum([m[d_key] for m in [r_msgs[j][i] for j in linked_taskInds if j != t_key]])
@@ -609,7 +609,7 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
 
             for c in itertools.product(*dom_com):
                 ####### check time bound
-                if time.time() - start_time >= time_bound:
+                if time.perf_counter() - start_time >= time_bound:
                     return resultCal(
                         agents,
                         tasks,
@@ -639,7 +639,7 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
             flag = True
             for a_key in linked_agentInds:
                 ####### check time bound
-                if time.time() - start_time >= time_bound:
+                if time.perf_counter() - start_time >= time_bound:
                     return resultCal(
                         agents,
                         tasks,
