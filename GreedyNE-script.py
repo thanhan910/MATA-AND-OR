@@ -1,7 +1,24 @@
-from GreedyNE import * 
+from functools import reduce  # python3 compatibility
+from operator import mul
+import json
+import os
 import statistics
 
-if __name__ == "__main__":
+from GreedyNE import * 
+from GenProblem import *
+from CalcUpperBound import *
+from Solutions import *
+
+def append_record(record, filename, typ):
+    with open(filename, "a") as f:
+        if typ != "":
+            json.dump(record, f, default=typ)
+        else:
+            json.dump(record, f)
+        f.write(os.linesep)
+        f.close()
+
+def main():
     run_num = 1000
     gamma = 1
     a_min_edge = 1
@@ -143,3 +160,7 @@ if __name__ == "__main__":
 
             # increase the task_num
             t_max_edge += 1
+
+
+if __name__ == "__main__":
+    main()
