@@ -52,113 +52,6 @@ def gen_constraints(agent_num, task_num,power = 1, a_min_edge = 2,t_max_edge =5)
     return a_taskInds, t_agents
 
 # %%
-def eGreedy2(agent_num,tasks,constraints,eps = 0,gamma = 1,CS=[]):
-    re_assign = 0
-    task_num = len(tasks)
-    alloc = [task_num for i in range(0,agent_num)] # each indicate the current task that agent i is allocated to, if = N, means not allocated
-    a_taskInds = constraints[0]
-    if CS ==[]:
-        CS = [[] for j in range(0,task_num+1)] # current coalition structure, the last one is dummy coalition
-        cur_con = [0 for i in range(0,agent_num)]
-    else:
-        CS.append([])
-        for j in range(0,task_num):
-            for i in CS[j]:
-                alloc[i] = j
-        cur_con = [0 if alloc[i] == task_num 
-                   else agent_con(tasks[alloc[i]],i,CS[alloc[i]],gamma) for i in range(0,agent_num)]
-
-    task_cons = [[agent_con(tasks[j],i,CS[j],gamma) 
-                  if j in a_taskInds[i] else -1000 for j in range(0,task_num)]+[0] for i in range(0,agent_num)] 
-    # the last 0 indicate not allocated
-    
-    move_vals = [[task_cons[i][j] - cur_con[i] 
-                  if j in a_taskInds[i]+[task_num] else -1000 for j in range(0,task_num+1)] for i in range(0,agent_num)]
-    
-    
-    max_moveIndexs = [np.argmax([move_vals[i][j] for j in a_taskInds[i]]+[0]) for i in range(0,agent_num)]
-    
-    max_moveVals = [move_vals[i][a_taskInds[i][max_moveIndexs[i]]] if max_moveIndexs[i] < len(a_taskInds[i]) 
-                    else move_vals[i][task_num]
-                                 for i in range(0,agent_num)]
-
-    
-    iteration = 0
-    while (True):
-        iteration += 1
-        # when eps = 1, it's Random, when eps = 0, it's Greedy
-        feasible_choices = [i for i in range(0,agent_num) if max_moveVals[i]>0]
-        if feasible_choices ==[]:
-            break # reach NE solution
-        if np.random.uniform() <= eps:
-        # exploration: random allocation 
-            a_index = np.random.choice(feasible_choices)
-            t_index  = a_taskInds[a_index][max_moveIndexs[a_index]] if max_moveIndexs[a_index]< len(a_taskInds[a_index]) else task_num
-#             t_index = max_moveIndexs[a_index]
-            
-        else:
-            # exploitation: allocationelse based on reputation or efficiency
-            a_index = np.argmax(max_moveVals)
-            t_index  = a_taskInds[a_index][max_moveIndexs[a_index]] if max_moveIndexs[a_index]< len(a_taskInds[a_index]) else task_num
-
-            #             t_index = max_moveIndexs[a_index]
-                
-        
-        # perfom move
-        old_t_index = alloc[a_index] 
-        alloc[a_index] = t_index
-        CS[t_index].append(a_index)
-
-        affected_a_indexes = []
-        affected_t_indexes = []
-        # update agents in the new coalition
-        if t_index != task_num:
-            affected_a_indexes.extend(CS[t_index])
-            affected_t_indexes.append(t_index)
-            
-            #task_cons[i][t_index] 
-            for i in CS[t_index]: 
-                task_cons[i][t_index] = agent_con(tasks[t_index], i, CS[t_index],gamma)
-                cur_con[i] = task_cons[i][t_index]
-        else:
-            affected_a_indexes.append(a_index)
-            task_cons[a_index][t_index] = 0
-            cur_con[a_index] = 0
-        
-        # update agent in the old coalition (if applicable)
-        if old_t_index != task_num: # if agents indeed moved from another task, we have to change every agent from the old as well
-            re_assign +=1
-            CS[old_t_index].remove(a_index)
-            affected_a_indexes.extend(CS[old_t_index])
-            affected_t_indexes.append(old_t_index)
-            for i in CS[old_t_index]: 
-                task_cons[i][old_t_index] = agent_con(tasks[old_t_index], i, CS[old_t_index],gamma)
-                cur_con[i] = task_cons[i][old_t_index]
-   
-        for i in affected_a_indexes:
-            move_vals[i] = [task_cons[i][j] - cur_con[i] 
-                  if j in a_taskInds[i]+[task_num] else -1000 for j in range(0,task_num+1)]
-            
-
-        ## updating other agents r.w.t the affected tasks
-        for t_ind in affected_t_indexes:
-            for i in range(0,agent_num):
-                if (i not in CS[t_ind]) and (t_ind in a_taskInds[i]):
-                    task_cons[i][t_ind] = agent_con(tasks[t_ind], i,CS[t_ind],gamma)
-                    move_vals[i][t_ind] = task_cons[i][t_ind] - cur_con[i]
-
-
-        max_moveIndexs = [np.argmax([move_vals[i][j] for j in a_taskInds[i]+[task_num]]) for i in range(0,agent_num)]
-
-        max_moveVals = [move_vals[i][a_taskInds[i][max_moveIndexs[i]]] if max_moveIndexs[i] < len(a_taskInds[i]) 
-                    else move_vals[i][task_num]
-                                 for i in range(0,agent_num)]
-        
-
-
-    return CS, sys_rewards_tasks(tasks, CS,gamma), iteration, re_assign
-
-# %%
 def gen_tasks(task_num, agent_num, constraints,max_reward = 100): # task reward DB, for each task, each coaltion value is a random number between (0,100)
     t_agents = constraints[1]
     tasks = [] # tasks is a list of task reward dictinoary, key represents the agent allocation in binary sum, value is a random integer
@@ -167,13 +60,6 @@ def gen_tasks(task_num, agent_num, constraints,max_reward = 100): # task reward 
         dict_list = [(sum([2**a for a in com]), np.random.randint(1,max_reward+1)) for com in coalitions]
         tasks.append({key: value for (key, value) in dict_list})
     return tasks
-
-# %%
-def random(agent_num,tasks,constraints, gamma = 1):
-    task_num = len(tasks)
-    a_taskInds = constraints[0]
-    alloc = [np.random.choice(a_taskInds[i]+[task_num]) for i in range(0,agent_num)]
-    return alloc, sys_rewards_tasks(tasks, alloc_to_CS(tasks,alloc), gamma)
 
 # %%
 def task_reward(task,coalition,gamma = 1,prt = False): # task is a dict (reward DB), coalition is a list of agents (indexes)
@@ -205,6 +91,29 @@ def alloc_to_CS(tasks,alloc):
         if alloc[i]< task_num: # means allocated (!=task_num)
             CS[alloc[i]].append(i)
     return CS
+
+# %%
+def random(agent_num,tasks,constraints, gamma = 1):
+    task_num = len(tasks)
+    a_taskInds = constraints[0]
+    alloc = [np.random.choice(a_taskInds[i]+[task_num]) for i in range(0,agent_num)]
+    return alloc, sys_rewards_tasks(tasks, alloc_to_CS(tasks,alloc), gamma)
+
+# %%
+def resultCal(agent_num,tasks,constraints,r_msgs,q_msgs,iteration,iter_over,converge,gamma = 1):
+    a_taskInds = constraints[0]
+    task_num = len(tasks)
+
+    
+    a_msg_sum = [{d_key:sum([r_msgs[j][i][0] for j in a_taskInds[i] if j!=d_key]) 
+                  + r_msgs[d_key][i][1] for d_key in a_taskInds[i]} 
+                 for i in range(0,agent_num)]
+    
+
+    alloc = [max(ams, key = ams.get) if ams !={} else task_num for ams in a_msg_sum] 
+    
+    
+    return alloc, sys_rewards_tasks(tasks, alloc_to_CS(tasks,alloc),gamma),iteration,iter_over,converge
 
 # %%
 def FMSNormalised(agent_num,tasks,constraints,gamma,time_bound = 500):
@@ -497,6 +406,81 @@ def FMS(agent_num,tasks,constraints,gamma,time_bound = 500):
            
 
 # %%
+def f_bounds(task,linked_agentInds,assign,constraints):
+
+    a_taskInds = constraints[0]
+    a_remain = list(set(linked_agentInds) - set(assign.keys()))
+    doms = [[0,1] if len(a_taskInds[i])>1 else [1] for i in a_remain]
+    com = list(itertools.product(*doms))
+    com_dict = [{a_remain[i]:c[i] for i in range(0,len(c))} for c in com]
+    com_dict2 = [{**assign,**cd} for cd in com_dict]
+    com_rewards = [task_reward(task,[a for a in com_dict2[c].keys() if com_dict2[c][a] == 1],gamma)
+                   for c in range(0,len(com_dict2))]  
+    return min(com_rewards),max(com_rewards)
+
+# %%
+def q_bounds(taskInd,linked_agentInds,assign,q_msgs,a_key):
+    j = taskInd
+    a_remain = list(set(linked_agentInds) - set(assign.keys()))
+    base = sum([q_msgs[a][j][assign[a]] for a in assign.keys() if a != a_key]) 
+    ub = sum([max([q_msgs[a][j][key] for key in q_msgs[a][j].keys()]) for a in a_remain])
+    lb = sum([min([q_msgs[a][j][key] for key in q_msgs[a][j].keys()]) for a in a_remain])
+    return base+lb, base+ub
+
+# %%
+def expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign,constraints):
+    a_taskInds = constraints[0]
+    j = taskInd
+
+    if len(assign.keys())==len(linked_agentInds):
+        result = sum([q_msgs[a][j][assign[a]] for a in assign.keys() if a != a_key]) + task_reward(tasks[j],[a for a in assign.keys() if assign[a] == 1],gamma)
+        return result
+    else:
+        a_remain = list(set(linked_agentInds) - set(assign.keys()))
+        i = a_remain[0]
+        
+        assign_t = assign.copy()
+        assign_t[i] = 1
+        
+        if len(a_taskInds[i])<=1:
+            return expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_t,constraints)
+        else:
+            ft_lb,ft_ub = f_bounds(tasks[j],linked_agentInds,assign_t,constraints)
+            qt_lb, qt_ub = q_bounds(taskInd,linked_agentInds,assign_t,q_msgs,a_key)
+            rt_ub = ft_ub +qt_ub
+            rt_lb = ft_lb +qt_lb
+
+            assign_f = assign.copy()
+            assign_f[i] = 0
+            ff_lb,ff_ub = f_bounds(tasks[j],linked_agentInds,assign_f,constraints)
+            qf_lb, qf_ub = q_bounds(taskInd,linked_agentInds,assign_f,q_msgs,a_key)
+            rf_ub = ff_ub +qf_ub
+            rf_lb = ff_lb +qf_lb
+
+            if rt_ub < rf_lb:
+#                 print('prune true branch')
+                return expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_f,constraints)
+            elif rf_ub < rt_lb:
+#                 print('prune false branch')
+                return expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_t,constraints)
+            else:
+                rt = expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_t,constraints)
+                rf = expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_f,constraints)
+                return max(rt,rf)
+
+            rt = expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_t,constraints)
+            rf = expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_f,constraints)
+            return max(rt,rf)
+
+# %%
+def findMax(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,constraints):
+    q_db = {}
+    f_db = {}
+    assign={}
+    assign[a_key] = d_key
+    return expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign,constraints)
+
+# %%
 def BnBFMS(agent_num,tasks,constraints,gamma,time_bound = 500):
     converge = False
     iter_over = False
@@ -616,97 +600,6 @@ def BnBFMS(agent_num,tasks,constraints,gamma,time_bound = 500):
            
 
 # %%
-def findMax(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,constraints):
-    q_db = {}
-    f_db = {}
-    assign={}
-    assign[a_key] = d_key
-    return expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign,constraints)
-
-# %%
-def f_bounds(task,linked_agentInds,assign,constraints):
-
-    a_taskInds = constraints[0]
-    a_remain = list(set(linked_agentInds) - set(assign.keys()))
-    doms = [[0,1] if len(a_taskInds[i])>1 else [1] for i in a_remain]
-    com = list(itertools.product(*doms))
-    com_dict = [{a_remain[i]:c[i] for i in range(0,len(c))} for c in com]
-    com_dict2 = [{**assign,**cd} for cd in com_dict]
-    com_rewards = [task_reward(task,[a for a in com_dict2[c].keys() if com_dict2[c][a] == 1],gamma)
-                   for c in range(0,len(com_dict2))]  
-    return min(com_rewards),max(com_rewards)
-
-# %%
-def q_bounds(taskInd,linked_agentInds,assign,q_msgs,a_key):
-    j = taskInd
-    a_remain = list(set(linked_agentInds) - set(assign.keys()))
-    base = sum([q_msgs[a][j][assign[a]] for a in assign.keys() if a != a_key]) 
-    ub = sum([max([q_msgs[a][j][key] for key in q_msgs[a][j].keys()]) for a in a_remain])
-    lb = sum([min([q_msgs[a][j][key] for key in q_msgs[a][j].keys()]) for a in a_remain])
-    return base+lb, base+ub
-
-# %%
-def expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign,constraints):
-    a_taskInds = constraints[0]
-    j = taskInd
-
-    if len(assign.keys())==len(linked_agentInds):
-        result = sum([q_msgs[a][j][assign[a]] for a in assign.keys() if a != a_key]) + task_reward(tasks[j],[a for a in assign.keys() if assign[a] == 1],gamma)
-        return result
-    else:
-        a_remain = list(set(linked_agentInds) - set(assign.keys()))
-        i = a_remain[0]
-        
-        assign_t = assign.copy()
-        assign_t[i] = 1
-        
-        if len(a_taskInds[i])<=1:
-            return expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_t,constraints,q_db,f_db)
-        else:
-            ft_lb,ft_ub = f_bounds(tasks[j],linked_agentInds,assign_t,constraints)
-            qt_lb, qt_ub = q_bounds(taskInd,linked_agentInds,assign_t,q_msgs,a_key)
-            rt_ub = ft_ub +qt_ub
-            rt_lb = ft_lb +qt_lb
-
-            assign_f = assign.copy()
-            assign_f[i] = 0
-            ff_lb,ff_ub = f_bounds(tasks[j],linked_agentInds,assign_f,constraints)
-            qf_lb, qf_ub = q_bounds(taskInd,linked_agentInds,assign_f,q_msgs,a_key)
-            rf_ub = ff_ub +qf_ub
-            rf_lb = ff_lb +qf_lb
-
-            if rt_ub < rf_lb:
-#                 print('prune true branch')
-                return expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_f,constraints)
-            elif rf_ub < rt_lb:
-#                 print('prune false branch')
-                return expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_t,constraints)
-            else:
-                rt = expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_t,constraints)
-                rf = expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_f,constraints)
-                return max(rt,rf)
-
-            rt = expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_t,constraints)
-            rf = expandTree(tasks,taskInd,q_msgs,linked_agentInds,a_key,d_key,assign_f,constraints)
-            return max(rt,rf)
-
-# %%
-def resultCal(agent_num,tasks,constraints,r_msgs,q_msgs,iteration,iter_over,converge,gamma = 1):
-    a_taskInds = constraints[0]
-    task_num = len(tasks)
-
-    
-    a_msg_sum = [{d_key:sum([r_msgs[j][i][0] for j in a_taskInds[i] if j!=d_key]) 
-                  + r_msgs[d_key][i][1] for d_key in a_taskInds[i]} 
-                 for i in range(0,agent_num)]
-    
-
-    alloc = [max(ams, key = ams.get) if ams !={} else task_num for ams in a_msg_sum] 
-    
-    
-    return alloc, sys_rewards_tasks(tasks, alloc_to_CS(tasks,alloc),gamma),iteration,iter_over,converge
-
-# %%
 def OPD(agent_num,tasks,constraints,gamma):
     edge_pruned = 0
     task_num = len(tasks)
@@ -757,6 +650,113 @@ def OPD(agent_num,tasks,constraints,gamma):
                           for t_ind in range(0,len(a_taskInds[i])) if t_flag[t_ind]]
         a_taskInds[i] = new_a_taskInds
     return a_taskInds,t_agentInds,edge_pruned
+
+# %%
+def eGreedy2(agent_num,tasks,constraints,eps = 0,gamma = 1,CS=[]):
+    re_assign = 0
+    task_num = len(tasks)
+    alloc = [task_num for i in range(0,agent_num)] # each indicate the current task that agent i is allocated to, if = N, means not allocated
+    a_taskInds = constraints[0]
+    if CS ==[]:
+        CS = [[] for j in range(0,task_num+1)] # current coalition structure, the last one is dummy coalition
+        cur_con = [0 for i in range(0,agent_num)]
+    else:
+        CS.append([])
+        for j in range(0,task_num):
+            for i in CS[j]:
+                alloc[i] = j
+        cur_con = [0 if alloc[i] == task_num 
+                   else agent_con(tasks[alloc[i]],i,CS[alloc[i]],gamma) for i in range(0,agent_num)]
+
+    task_cons = [[agent_con(tasks[j],i,CS[j],gamma) 
+                  if j in a_taskInds[i] else -1000 for j in range(0,task_num)]+[0] for i in range(0,agent_num)] 
+    # the last 0 indicate not allocated
+    
+    move_vals = [[task_cons[i][j] - cur_con[i] 
+                  if j in a_taskInds[i]+[task_num] else -1000 for j in range(0,task_num+1)] for i in range(0,agent_num)]
+    
+    
+    max_moveIndexs = [np.argmax([move_vals[i][j] for j in a_taskInds[i]]+[0]) for i in range(0,agent_num)]
+    
+    max_moveVals = [move_vals[i][a_taskInds[i][max_moveIndexs[i]]] if max_moveIndexs[i] < len(a_taskInds[i]) 
+                    else move_vals[i][task_num]
+                                 for i in range(0,agent_num)]
+
+    
+    iteration = 0
+    while (True):
+        iteration += 1
+        # when eps = 1, it's Random, when eps = 0, it's Greedy
+        feasible_choices = [i for i in range(0,agent_num) if max_moveVals[i]>0]
+        if feasible_choices ==[]:
+            break # reach NE solution
+        if np.random.uniform() <= eps:
+        # exploration: random allocation 
+            a_index = np.random.choice(feasible_choices)
+            t_index  = a_taskInds[a_index][max_moveIndexs[a_index]] if max_moveIndexs[a_index]< len(a_taskInds[a_index]) else task_num
+#             t_index = max_moveIndexs[a_index]
+            
+        else:
+            # exploitation: allocationelse based on reputation or efficiency
+            a_index = np.argmax(max_moveVals)
+            t_index  = a_taskInds[a_index][max_moveIndexs[a_index]] if max_moveIndexs[a_index]< len(a_taskInds[a_index]) else task_num
+
+            #             t_index = max_moveIndexs[a_index]
+                
+        
+        # perfom move
+        old_t_index = alloc[a_index] 
+        alloc[a_index] = t_index
+        CS[t_index].append(a_index)
+
+        affected_a_indexes = []
+        affected_t_indexes = []
+        # update agents in the new coalition
+        if t_index != task_num:
+            affected_a_indexes.extend(CS[t_index])
+            affected_t_indexes.append(t_index)
+            
+            #task_cons[i][t_index] 
+            for i in CS[t_index]: 
+                task_cons[i][t_index] = agent_con(tasks[t_index], i, CS[t_index],gamma)
+                cur_con[i] = task_cons[i][t_index]
+        else:
+            affected_a_indexes.append(a_index)
+            task_cons[a_index][t_index] = 0
+            cur_con[a_index] = 0
+        
+        # update agent in the old coalition (if applicable)
+        if old_t_index != task_num: # if agents indeed moved from another task, we have to change every agent from the old as well
+            re_assign +=1
+            CS[old_t_index].remove(a_index)
+            affected_a_indexes.extend(CS[old_t_index])
+            affected_t_indexes.append(old_t_index)
+            for i in CS[old_t_index]: 
+                task_cons[i][old_t_index] = agent_con(tasks[old_t_index], i, CS[old_t_index],gamma)
+                cur_con[i] = task_cons[i][old_t_index]
+   
+        for i in affected_a_indexes:
+            move_vals[i] = [task_cons[i][j] - cur_con[i] 
+                  if j in a_taskInds[i]+[task_num] else -1000 for j in range(0,task_num+1)]
+            
+
+        ## updating other agents r.w.t the affected tasks
+        for t_ind in affected_t_indexes:
+            for i in range(0,agent_num):
+                if (i not in CS[t_ind]) and (t_ind in a_taskInds[i]):
+                    task_cons[i][t_ind] = agent_con(tasks[t_ind], i,CS[t_ind],gamma)
+                    move_vals[i][t_ind] = task_cons[i][t_ind] - cur_con[i]
+
+
+        max_moveIndexs = [np.argmax([move_vals[i][j] for j in a_taskInds[i]+[task_num]]) for i in range(0,agent_num)]
+
+        max_moveVals = [move_vals[i][a_taskInds[i][max_moveIndexs[i]]] if max_moveIndexs[i] < len(a_taskInds[i]) 
+                    else move_vals[i][task_num]
+                                 for i in range(0,agent_num)]
+        
+
+
+    return CS, sys_rewards_tasks(tasks, CS,gamma), iteration, re_assign
 
 # %%
 def append_record(record, filename, typ):
