@@ -1,10 +1,13 @@
 import numpy as np
 import itertools
 
+
 def gen_random_partition(array, flatten: bool = True):
     """
     Generate a random partition of the given array.
     """
+    if len(array) <= 2:
+        return array
     partition = []
     for element in array:
         random_index = np.random.randint(0, len(partition) + 1)
@@ -31,7 +34,7 @@ def gen_and_or_tree(task_num, max_depth=None):
     Each leaf node is an integer from 0 to `task_num-1`, and each non-leaf node is a list.
     """
     if max_depth is None:
-        max_depth = np.random.randint(2, task_num // 4 * 3)
+        max_depth = np.random.randint(1, task_num // 2)
     # Fix max_depth to be at least 1 and at most task_num
     max_depth = max(1, min(max_depth, task_num))
 
