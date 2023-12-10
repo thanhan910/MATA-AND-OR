@@ -49,7 +49,7 @@ def gen_and_or_tree(task_num, max_depth=None):
 def normal_form(tree, root_node_type, form):
     """
     Convert a tree to a normal form. (CNF or DNF)
-    Worst case Complexity: At least e^(n/e) where n is the number of leafs in the tree.
+    Worst case Complexity: At least O(e^(n/e)) where n is the number of leafs in the tree.
     """
     reverse_node_type = {'AND': 'OR', 'OR': 'AND'}
 
