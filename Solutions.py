@@ -57,8 +57,7 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
     r_msgs = [
         {
             t_agentInds[j][i]: (
-                {1: -100}
-                if len(a_taskInds[t_agentInds[j][i]]) == 1
+                {1: -100} if len(a_taskInds[t_agentInds[j][i]]) == 1
                 else {key: -100 for key in [0, 1]}
             )
             for i in range(0, len(t_agentInds[j]))
@@ -66,8 +65,8 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
         for j in range(0, task_num)
     ]
 
-    q_flags = [False for i in range(0, agent_num)]
-    r_flags = [False for j in range(0, task_num)]
+    q_flags = [False] * agent_num
+    r_flags = [False] * task_num
 
     iteration = 0
     while True:
@@ -95,11 +94,9 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
 
                 if len(linked_taskInds) > 1:
                     msgs[1] = sum(
-                        [
-                            m[0]
-                            for m in [
-                                r_msgs[j][i] for j in linked_taskInds if j != t_key
-                            ]
+                        m[0]
+                        for m in [
+                            r_msgs[j][i] for j in linked_taskInds if j != t_key
                         ]
                     )
                     msg_0 = []
@@ -124,10 +121,8 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
 
                 old_msg = q_msgs[i][t_key]
                 if old_msg != {} and any(
-                    [
-                        abs(msgs_regularised[d_key] - old_msg[d_key]) > 10 ** (-5)
-                        for d_key in old_msg.keys()
-                    ]
+                    abs(msgs_regularised[d_key] - old_msg[d_key]) > 10 ** (-5)
+                    for d_key in old_msg.keys()
                 ):
                     flag = False
 
@@ -160,28 +155,14 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
             for c in itertools.product(*dom_com):
                 ####### check time bound
                 if time.perf_counter() - start_time >= time_bound:
-                    return resultCal(
-                        agents,
-                        tasks,
-                        constraints,
-                        r_msgs,
-                        q_msgs,
-                        iteration,
-                        iter_over,
-                        converge,
-                        gamma,
-                    )
+                    return resultCal(agents, tasks, constraints, r_msgs, q_msgs, iteration, iter_over, converge, gamma)
                 ####### check time bound
 
                 com_dict.append({linked_agentInds[i]: c[i] for i in range(0, len(c))})
                 com_rewards.append(
                     task_reward(
                         tasks[j],
-                        [
-                            agents[a_key]
-                            for a_key in com_dict[-1].keys()
-                            if com_dict[-1][a_key] == 1
-                        ],
+                        [agents[a_key] for a_key in com_dict[-1].keys() if com_dict[-1][a_key] == 1],
                         gamma,
                     )
                 )
@@ -190,49 +171,26 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
             for a_key in linked_agentInds:
                 ####### check time bound
                 if time.perf_counter() - start_time >= time_bound:
-                    return resultCal(
-                        agents,
-                        tasks,
-                        constraints,
-                        r_msgs,
-                        q_msgs,
-                        iteration,
-                        iter_over,
-                        converge,
-                        gamma,
-                    )
+                    return resultCal(agents, tasks, constraints, r_msgs, q_msgs, iteration, iter_over, converge, gamma)
                 ####### check time bound
 
                 old_msg = r_msgs[j][a_key]
                 q_table = []
                 for c in range(0, len(com_dict)):
                     q_table.append(
-                        sum(
-                            [
-                                q_msgs[a][j][com_dict[c][a]]
-                                for a in linked_agentInds
-                                if a != a_key
-                            ]
-                        )
-                        + com_rewards[c]
+                        sum([q_msgs[a][j][com_dict[c][a]] for a in linked_agentInds if a != a_key]) + com_rewards[c]
                     )
 
                 r_msgs[j][a_key] = {
                     d_key: max(
-                        [
-                            q_table[c]
-                            for c in range(0, len(com_dict))
-                            if com_dict[c][a_key] == d_key
-                        ]
+                        [q_table[c] for c in range(0, len(com_dict)) if com_dict[c][a_key] == d_key]
                     )
                     for d_key in ([0, 1] if len(a_taskInds[a_key]) > 1 else [1])
                 }
 
-                if any(
-                    [
-                        abs(r_msgs[j][a_key][d_key] - old_msg[d_key]) > 10 ** (-5)
-                        for d_key in old_msg.keys()
-                    ]
+                if any( 
+                    abs(r_msgs[j][a_key][d_key] - old_msg[d_key]) > 10 ** (-5)
+                    for d_key in old_msg.keys()
                 ):
                     flag = False
 
