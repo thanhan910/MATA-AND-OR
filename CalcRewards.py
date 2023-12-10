@@ -42,3 +42,21 @@ def sys_or_rewards_agents(agents, tasks, allocation_structure, gamma=1):
         for j, task in enumerate(tasks)
     )
 
+
+def sys_rewards_tree_tasks(tree, root_node_type, tasks, agents, coalition_structure, gamma=1):
+    if isinstance(tree, int):
+        return task_reward(tasks[tree], [agents[i] for i in coalition_structure[tree]], gamma)
+    rewards = [sys_rewards_tree_tasks(subtree, root_node_type, tasks, agents, coalition_structure, gamma) for subtree in tree]
+    if root_node_type == 'AND':
+        return sum(rewards)
+    elif root_node_type == 'OR':
+        return max(rewards)
+    
+def sys_rewards_tree_agents(tree, root_node_type, tasks, agents, allocation_structure, gamma=1):
+    if isinstance(tree, int):
+        return task_reward(tasks[tree], [agent for i, agent in enumerate(agents) if allocation_structure[i] == tree], gamma)
+    rewards = [sys_rewards_tree_agents(subtree, root_node_type, tasks, agents, allocation_structure, gamma) for subtree in tree]
+    if root_node_type == 'AND':
+        return sum(rewards)
+    elif root_node_type == 'OR':
+        return max(rewards)
