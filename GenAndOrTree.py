@@ -79,3 +79,63 @@ def normal_form(tree, root_node_type, form):
             new_combination.extend(leafs_only)
             new_normal_tree.append(new_combination)
         return new_normal_tree
+
+
+def dfs(tree, root_node_type, num_tasks):
+    """
+    Depth-first search of the tree.
+    
+    Returns a generator that yields the node id, node type, parent node id, and depth of each node.
+    
+    To get the node id, node type, parent node id, and depth of the root node, use `next(generator)`.
+    
+    To iterate through the generator, use `for node_id, node_type, parent, depth in generator:`.
+
+    For each `num_tasks`, the total number of non-leaf nodes is at most `num_tasks - 1`.
+    
+    For each node, `node_id` is iterated in ascending order starting from `num_tasks + 1` (unless it is a leaf, then node_id is the node). We reserve `num_tasks` for the id of the dummy task coalition.
+
+    For each node, `node_type` is either 'AND', 'OR', or 'LEAF'.
+    """
+    global_node_id = num_tasks + 1
+    frontier = [[tree, global_node_id, root_node_type, num_tasks, 0]]
+    while len(frontier) > 0:
+        node, node_id, node_type, parent, depth = frontier.pop()
+        yield node_id, node_type, parent, depth
+        if isinstance(node, list):
+            for child in node:
+                if isinstance(child, list):
+                    global_node_id += 1
+                    frontier.append([child, global_node_id, 'AND' if node_type == 'OR' else 'OR', node_id, depth + 1])
+                else:
+                    frontier.append([child, child, 'LEAF', node_id, depth + 1])
+
+
+def bfs(tree, root_node_type, num_tasks):
+    """
+    Breadth-first search of the tree.
+    
+    Returns a generator that yields the node id, node type, parent node id, and depth of each node.
+    
+    To get the node id, node type, parent node id, and depth of the root node, use `next(generator)`.
+    
+    To iterate through the generator, use `for node_id, node_type, parent, depth in generator:`.
+
+    For each `num_tasks`, the total number of non-leaf nodes is at most `num_tasks - 1`.
+    
+    For each node, `node_id` is iterated in ascending order starting from `num_tasks + 1` (unless it is a leaf, then node_id is the node). We reserve `num_tasks` for the id of the dummy task coalition.
+
+    For each node, `node_type` is either 'AND', 'OR', or 'LEAF'.
+    """
+    global_node_id = num_tasks + 1
+    frontier = [[tree, global_node_id, root_node_type, num_tasks, 0]]
+    while len(frontier) > 0:
+        node, node_id, node_type, parent, depth = frontier.pop(0)
+        yield node_id, node_type, parent, depth
+        if isinstance(node, list):
+            for child in node:
+                if isinstance(child, list):
+                    global_node_id += 1
+                    frontier.append([child, global_node_id, 'AND' if node_type == 'OR' else 'OR', node_id, depth + 1])
+                else:
+                    frontier.append([child, child, 'LEAF', node_id, depth + 1])
