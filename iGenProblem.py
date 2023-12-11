@@ -128,3 +128,36 @@ def gen_agents(a_taskIds, task_caps, max_capNum, cap_ids, max_capVal):
         agents_capContributions[i] = a_contri
 
     return agents_capIds, agents_capContributions
+
+
+
+def gen_agents_random(agent_ids, cap_ids, max_capNum, max_capVal):
+    """
+    Generate agents, each agent is represented by a list of capabilities it has and its contribution values for each capability.
+    """
+    agents_capIds = {}
+    agents_capContributions = {}
+    for i in agent_ids:
+        a_cap_num = np.random.randint(1, max_capNum + 1)  # the num of caps the agent will have
+        a_caps = set(np.random.choice(cap_ids, a_cap_num, replace=False))
+
+        agents_capIds[i] = sorted(list(a_caps))
+        agents_capContributions[i] = {
+            c: (np.random.randint(1, max_capVal + 1) if c in agents_capIds[i] else 0)
+            for c in cap_ids
+        }
+
+    return agents_capIds, agents_capContributions
+
+
+def calc_constraints(agents_capIds, task_caps):
+    """
+    Calculate the constraints of the system, where the system consists of tasks and agents with constraints.
+    """
+    a_taskIds = { i: [] for i in agents_capIds }
+    t_agentIds = { j: [] for j in task_caps }
+    for i, a_caps in agents_capIds.items():
+        for j, t_caps in task_caps.items():
+            if set(t_caps).issubset(a_caps):
+                a_taskIds[i].append(j)
+                t_agentIds[j].append(i)
