@@ -4,6 +4,13 @@ from CalcRewards import *
 
 
 def agent_contribution(agents, tasks, query_agentIndex, query_taskIndex, coalition, constraints, gamma=1):
+    """
+    Return contribution of agent i to task j in coalition C_j
+    
+    = U_i(C_j, j) - U_i(C_j \ {i}, j) if i in C_j
+
+    = U_i(C_j U {i}, j) - U_i(S, j) if i not in C_j
+    """
     a_taskInds = constraints[0]
     if query_taskIndex == len(tasks):
         return 0
@@ -11,12 +18,9 @@ def agent_contribution(agents, tasks, query_agentIndex, query_taskIndex, coaliti
         return 0
     cur_reward = task_reward(tasks[query_taskIndex], [agents[i] for i in coalition], gamma)
     if query_agentIndex in coalition:
-        agents_list = [agents[i] for i in coalition if i != query_agentIndex]
-        return cur_reward - task_reward(tasks[query_taskIndex], agents_list, gamma)
+        return cur_reward - task_reward(tasks[query_taskIndex], [agents[i] for i in coalition if i != query_agentIndex], gamma)
     else:
-        agents_list = [agents[i] for i in coalition]
-        agents_list.append(agents[query_agentIndex])
-        return task_reward(tasks[query_taskIndex], agents_list, gamma) - cur_reward
+        return task_reward(tasks[query_taskIndex], [agents[i] for i in coalition] + [agents[query_agentIndex]], gamma) - cur_reward
 
 
 def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[]):
