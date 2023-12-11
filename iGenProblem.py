@@ -85,3 +85,44 @@ def gen_constraints(agent_ids, task_ids, power=1, a_min_edge=2, t_max_edge=5):
     ]
 
     return a_taskIds, t_agentIds
+
+
+def gen_agents(a_taskIds, task_ids, max_capNum, cap_ids, max_capVal):  
+    # m is the number of task, max_capNum is the maximum number of cap a task could require, max_capVal is the maximum capability value
+    """
+    Generate agents, each agent is represented by a list of capabilities it has and a list of contribution values for each capability
+    """
+    agents_capIds = {}
+    agents_capContributions = {}
+    for i, a_taskId in a_taskIds.items():
+        a_t_caps_list = [task_ids[j] for j in a_taskId]  # lists of caps that each task agent could perform
+
+        a_caps_union = set(itertools.chain(*a_t_caps_list))  # union of unique caps of tasks that agent could perform.
+
+        a_cap_num = np.random.randint(min(3, max_capNum, len(a_caps_union)), min(len(a_caps_union), max_capNum) + 1)  # the num of caps the agent will have
+
+        a_caps = set([np.random.choice(t_c) for t_c in a_t_caps_list])  # initial draw to guarantee the agent has some contribution to each of the task that the agent has the capability to perform.
+
+        # Randomly draw the remaining capabilities, possibly none
+        remaining_choices = list(a_caps_union.difference(a_caps))
+        if remaining_choices != []:
+            a_caps.update(
+                np.random.choice(
+                    remaining_choices,
+                    min(max(0, a_cap_num - len(a_taskId)), len(remaining_choices)),
+                    replace=False,
+                )
+            )
+        
+        # a_caps.update(np.random.choice(remaining_choices, min(0,len(remaining_choices),a_cap_num-len(a_taskInd)),replace = False))
+
+        a_caps_list = sorted(list(a_caps))
+        a_contri = {
+            c : (np.random.randint(1, max_capVal + 1) if c in a_caps_list else 0)
+            for c in cap_ids
+        }
+
+        agents_capIds[i] = a_caps_list
+        agents_capContributions[i] = a_contri
+
+    return agents_capIds, agents_capContributions
