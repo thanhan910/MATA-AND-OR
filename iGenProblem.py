@@ -87,15 +87,17 @@ def gen_constraints(agent_ids, task_ids, power=1, a_min_edge=2, t_max_edge=5):
     return a_taskIds, t_agentIds
 
 
-def gen_agents(a_taskIds, task_ids, max_capNum, cap_ids, max_capVal):  
+def gen_agents(a_taskIds, task_caps, max_capNum, cap_ids, max_capVal):  
     # m is the number of task, max_capNum is the maximum number of cap a task could require, max_capVal is the maximum capability value
     """
-    Generate agents, each agent is represented by a list of capabilities it has and a list of contribution values for each capability
+    Generate agents, each agent is represented by a list of capabilities it has and a list of contribution values for each capability.
+    
+    Generate based on the tasks that the agent could fully perform.
     """
     agents_capIds = {}
     agents_capContributions = {}
     for i, a_taskId in a_taskIds.items():
-        a_t_caps_list = [task_ids[j] for j in a_taskId]  # lists of caps that each task agent could perform
+        a_t_caps_list = [task_caps[j] for j in a_taskId]  # lists of caps that each task agent could perform
 
         a_caps_union = set(itertools.chain(*a_t_caps_list))  # union of unique caps of tasks that agent could perform.
 
