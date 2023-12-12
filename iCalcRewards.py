@@ -1,28 +1,22 @@
-def task_reward(task_caps, agents, gamma=1):
+def task_reward(t_capIds, agents_capsContributions, gamma=1):
     # task is represented by a list of capabilities it requires, agents is a list agents, where each represented by a list cap contribution values
     """
     Calculate the reward of a single task
-    :param: `task`: the list of capabilities the task requires
-    :param: `agents`: the list of agents
-    :param: `gamma`: the discount factor
-    :return: the reward of the task
     """
-    if agents == []:
+    if len(agents_capsContributions) == 0:
         return 0
     else:
-        return sum([max([agent[c] for agent in agents]) for c in task_caps]) * (
-            gamma ** len(agents)
-        )
+        return sum([max([a_capsContri[c] for a_capsContri in agents_capsContributions.values()]) for c in t_capIds]) * (gamma ** len(agents_capsContributions))
 
 
-def sys_reward_agents(agents, tasks, allocation_structure, gamma=1):
+def sys_reward_agents(agents_capsContributions, tasks_capIds, allocation_structure, gamma=1):
     """
     Calculate the reward of the system, given the allocation structure: agent -> task
     """
     # allocation_structure is a vector of size M, each element indicate which task the agent is allocated to
     return sum(
-        task_reward(task, [agent for i, agent in enumerate(agents) if allocation_structure[i] == j], gamma)
-        for j, task in enumerate(tasks)
+        task_reward(task, [agent for i, agent in agents_capsContributions if allocation_structure[i] == j], gamma)
+        for j, task in enumerate(tasks_capIds)
     )
 
 
