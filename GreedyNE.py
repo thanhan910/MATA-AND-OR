@@ -154,3 +154,38 @@ def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[])
         re_assign,
     )
 
+
+def eGreedyNE(agents, tasks, constraints, agentIds, taskIds, coalition_structure=[], eps=0, gamma=1):
+    """
+    Solve the problem using GreedyNE, but only consider the agents and tasks in the given agentIds and taskIds
+    """
+    new_agents = [agents[i] for i in agentIds]
+    new_tasks = [tasks[j] for j in taskIds]
+    reverse_taskIds_map = {j: j1 for j1, j in enumerate(taskIds)}
+    reverse_agentIds_map = {i: i1 for i1, i in enumerate(agentIds)}
+    new_constraints = [[], []]
+    for i in agentIds:
+        new_constraints[0].append([reverse_taskIds_map[j] for j in constraints[0][i]])
+    for j in taskIds:
+        new_constraints[1].append([reverse_agentIds_map[i] for i in constraints[1][j]])
+    coalition_structure, sys_reward, iteration_count, re_assign_count = eGreedy2(new_agents, new_tasks, new_constraints, eps, gamma, coalition_structure)
+    return (
+        [agentIds[i] for i in coalition_structure[j]]
+        for j in range(0, len(taskIds))
+    ), sys_reward, iteration_count, re_assign_count
+    
+
+
+def eGreedyDNF(agents, tasks, constraints, dnf_tree, eps=0, gamma=1, coalition_structure=[]):
+    """
+    Solve the problem using GreedyNE when the tasks are organized in a single OR-AND tree (Disjunctive Normal Form)
+    """
+    max_reward = 0
+    for x, subtree in enumerate(dnf_tree):
+        subtasksIds = [subtree] if isinstance(subtree, int) else subtree
+        subagentIds = range(0, len(agents))
+        coalition_structure, sys_reward, iteration_count, re_assign_count = eGreedyNE(agents, tasks, constraints, subagentIds, subtasksIds, coalition_structure, eps, gamma)
+        if sys_reward > max_reward:
+            max_reward = sys_reward
+            max_coalition_structure = coalition_structure
+    return max_coalition_structure, max_reward, iteration_count, re_assign_count
