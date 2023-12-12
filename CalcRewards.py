@@ -36,12 +36,15 @@ def sys_rewards_tasks(tasks, agents, coalition_structure, gamma=1):
     )
 
 
-def sys_rewards_tree_agents(tree, root_node_type, tasks, agents, allocation_structure, gamma=1):
+def sys_rewards_tree_agents(tree, root_node_type, tasks, agents, allocation_structure, node_values = {}, gamma=1):
     """
     Calculate the reward of the system, given the allocation structure: agent -> task
     """
     if isinstance(tree, int):
-        return task_reward(tasks[tree], [agent for i, agent in enumerate(agents) if allocation_structure[i] == tree], gamma)
+        if tree in node_values:
+            return node_values[tree]
+        else:
+            return task_reward(tasks[tree], [agent for i, agent in enumerate(agents) if allocation_structure[i] == tree], gamma)
     rewards = [
         sys_rewards_tree_agents(subtree, root_node_type, tasks, agents, allocation_structure, gamma)
         for subtree in tree
@@ -52,12 +55,15 @@ def sys_rewards_tree_agents(tree, root_node_type, tasks, agents, allocation_stru
         return max(rewards)
 
 
-def sys_rewards_tree_tasks(tree, root_node_type, tasks, agents, coalition_structure, gamma=1):
+def sys_rewards_tree_tasks(tree, root_node_type, tasks, agents, coalition_structure, node_values = {}, gamma=1):
     """
     Calculate the reward of the system, given the coalition structure: task -> agents (coalition)
     """
     if isinstance(tree, int):
-        return task_reward(tasks[tree], [agents[i] for i in coalition_structure[tree]], gamma)
+        if tree in node_values:
+            return node_values[tree]
+        else:
+            return task_reward(tasks[tree], [agents[i] for i in coalition_structure[tree]], gamma)
     rewards = [
         sys_rewards_tree_tasks(subtree, root_node_type, tasks, agents, coalition_structure, gamma)
         for subtree in tree
