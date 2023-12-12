@@ -155,7 +155,7 @@ def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[])
     )
 
 
-def eGreedyNE(agents, tasks, constraints, agentIds, taskIds, coalition_structure=[], eps=0, gamma=1):
+def eGreedyNE2(agents, tasks, constraints, agentIds, taskIds, coalition_structure=[], eps=0, gamma=1):
     """
     Solve the problem using GreedyNE, but only consider the agents and tasks in the given agentIds and taskIds
     """
@@ -184,7 +184,7 @@ def eGreedyDNF(agents, tasks, constraints, dnf_tree, eps=0, gamma=1, coalition_s
     for x, subtree in enumerate(dnf_tree):
         subtasksIds = [subtree] if isinstance(subtree, int) else subtree
         subagentIds = range(0, len(agents))
-        coalition_structure, sys_reward, iteration_count, re_assign_count = eGreedyNE(agents, tasks, constraints, subagentIds, subtasksIds, coalition_structure, eps, gamma)
+        coalition_structure, sys_reward, iteration_count, re_assign_count = eGreedyNE2(agents, tasks, constraints, subagentIds, subtasksIds, coalition_structure, eps, gamma)
         if sys_reward > max_reward:
             max_reward = sys_reward
             max_coalition_structure = coalition_structure
