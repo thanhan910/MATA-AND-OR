@@ -23,6 +23,22 @@ def agent_contribution(agents, tasks, query_agentIndex, query_taskIndex, coaliti
         return task_reward(tasks[query_taskIndex], [agents[i] for i in coalition] + [agents[query_agentIndex]], gamma) - cur_reward
 
 
+
+def agent_best_move(query_agentIndex, allocation_structure, agents, tasks, constraints, tree, root_node_type, dummy_task_id, gamma=1):
+    old_t_index = allocation_structure[query_agentIndex]
+    max_reward_taskIndex = old_t_index
+    max_reward = 0
+    for j in constraints[0][query_agentIndex] + [dummy_task_id]:
+        allocation_structure[query_agentIndex] = j
+        new_sys_reward = sys_rewards_tree_agents(tree, root_node_type, tasks, agents, allocation_structure, gamma)
+        if new_sys_reward > max_reward:
+            max_reward_taskIndex = j
+            max_reward = new_sys_reward
+    allocation_structure[query_agentIndex] = old_t_index
+    return max_reward_taskIndex, max_reward
+
+
+
 def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[]):
     re_assign = 0
     a_taskInds = constraints[0]
