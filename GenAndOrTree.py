@@ -1,5 +1,16 @@
 import numpy as np
 import itertools
+from dataclasses import dataclass
+
+
+@dataclass
+class Node:
+    node_id: int
+    node_type: str
+    parent: int
+    depth: int
+    children: list
+    
 
 
 def gen_random_partition(array, flatten: bool = True):
@@ -81,9 +92,9 @@ def normal_form(tree, root_node_type, form):
         return new_normal_tree
 
 
-def dfs(tree, root_node_type, num_tasks):
+def traverse_tree(tree, root_node_type, num_tasks, order='bfs'):
     """
-    Depth-first search of the tree.
+    Traverse tree using depth-first search or breadth-first search.
     
     Returns a generator that yields the node id, node type, parent node id, and depth of each node.
     
@@ -97,10 +108,11 @@ def dfs(tree, root_node_type, num_tasks):
 
     For each node, `node_type` is either 'AND', 'OR', or 'LEAF'.
     """
+    frontier_pop_index = 0 if order.lower() == 'bfs' else -1
     global_node_id = num_tasks + 1
-    frontier = [[tree, global_node_id, root_node_type, num_tasks, 0]]
+    frontier = [[tree, global_node_id, root_node_type, None, 0]]
     while len(frontier) > 0:
-        node, node_id, node_type, parent, depth = frontier.pop()
+        node, node_id, node_type, parent, depth = frontier.pop(frontier_pop_index)
         yield node_id, node_type, parent, depth
         if isinstance(node, list):
             for child in node:
@@ -111,9 +123,97 @@ def dfs(tree, root_node_type, num_tasks):
                     frontier.append([child, child, 'LEAF', node_id, depth + 1])
 
 
-def bfs(tree, root_node_type, num_tasks):
+def calc_tree_info(tree, root_node_type, num_tasks, order='bfs'):
+    tree_traversed = list(traverse_tree(tree, root_node_type, num_tasks, order=order))
+    tree_info = [
+        {
+            'node_id': num_tasks,
+            'node_type': None,
+            'parent': None,
+            'depth': None,
+            'children': []
+        }
+    ] * len(tree_traversed)
+    for node_id, node_type, parent, depth in tree_traversed:
+        tree_info[node_id]['node_id'] = node_id
+        tree_info[node_id]['node_type'] = node_type
+        tree_info[node_id]['parent'] = parent
+        tree_info[node_id]['depth'] = depth
+        tree_info[parent]['children'].append(node_id)
+
+
+def gen_tree_advanced(task_num, max_depth=None):
     """
-    Breadth-first search of the tree.
+    Generate a random AND/OR tree with `task_num` tasks.
+    Returns a list of lists or integers, where each element/subelement is a node.
+    Each leaf node is an integer from 0 to `task_num-1`, and each non-leaf node is a list.
+    """
+    if max_depth is None:
+        max_depth = np.random.randint(1, task_num // 2)
+    # Fix max_depth to be at least 1 and at most task_num
+    max_depth = max(1, min(max_depth, task_num))
+
+    # Generate a random AND/OR tree with task_num tasks
+    tree_info = [{
+        'node_id': i,
+        'node_type': 'LEAF',
+        'parent': None,
+        'depth': 0,
+        'children': None
+    } for i in range(task_num)] + [{
+        'node_id': task_num,
+        'node_type': None,
+        'parent': None,
+        'depth': None,
+        'children': None
+    }]
+    tree = list(range(task_num))
+    global_node_id = task_num
+    depth = 0
+    for _ in range(max_depth - 1):
+        new_tree = gen_random_partition(tree, flatten=True)
+        tree = []
+        depth += 1
+        for node in new_tree:
+            if isinstance(node, list):
+                global_node_id += 1
+                tree_info.append({
+                    'node_id': global_node_id,
+                    'node_type': np.random.choice(['AND', 'OR']),
+                    'parent': None,
+                    'depth': depth,
+                    'children': node
+                })
+                for leaf in node:
+                    tree_info[leaf]['parent'] = global_node_id
+                tree.append(global_node_id)
+            else:
+                tree_info[node]['parent'] = global_node_id
+                tree_info[node]['depth'] = depth
+                tree.append(node)
+    
+    depth += 1
+    global_node_id += 1
+    tree_info.append({
+        'node_id': global_node_id,
+        'node_type': np.random.choice(['AND', 'OR']),
+        'parent': None,
+        'depth': depth,
+        'children': tree
+    })
+    for node in tree:
+        tree_info[node]['parent'] = global_node_id
+
+    # Fix depth values, since we have been using the reversed depth
+    for node in tree_info:
+        node['depth'] = depth - node['depth']
+
+    return tree_info
+
+
+def traverse_tree_advanced(tree_info, order='dfs'):
+    """
+    Traverse tree using depth-first search.
     
     Returns a generator that yields the node id, node type, parent node id, and depth of each node.
     
@@ -127,15 +227,22 @@ def bfs(tree, root_node_type, num_tasks):
 
     For each node, `node_type` is either 'AND', 'OR', or 'LEAF'.
     """
-    global_node_id = num_tasks + 1
-    frontier = [[tree, global_node_id, root_node_type, num_tasks, 0]]
+    frontier_pop_index = 0 if order.lower() == 'bfs' else -1
+    frontier = [tree_info[-1]]
     while len(frontier) > 0:
-        node, node_id, node_type, parent, depth = frontier.pop(0)
-        yield node_id, node_type, parent, depth
-        if isinstance(node, list):
-            for child in node:
-                if isinstance(child, list):
-                    global_node_id += 1
-                    frontier.append([child, global_node_id, 'AND' if node_type == 'OR' else 'OR', node_id, depth + 1])
-                else:
-                    frontier.append([child, child, 'LEAF', node_id, depth + 1])
+        node = frontier.pop(frontier_pop_index)
+        yield node
+        if node['children'] is not None:
+            for child in node['children']:
+                frontier.append([tree_info[child], child])
+
+
+def convert_tree_to_list(tree_info):
+    """
+    Convert tree_info to tree_list, a list of lists or integers, where each element/subelement is a node.
+    """
+    def _helper(node):
+        if node['children'] is None:
+            return node['node_id']
+        return [_helper(tree_info[i]) for i in node['children']]
+    return _helper(tree_info[-1])
