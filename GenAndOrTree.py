@@ -10,6 +10,18 @@ class NodeType(Enum):
     LEAF = "LEAF"
     DUMMY = "DUMMY"
 
+def reverse_node_type(node_type):
+    if node_type == NodeType.AND:
+        return NodeType.OR
+    elif node_type == NodeType.OR:
+        return NodeType.AND
+    else:
+        return node_type
+    
+
+def is_not_leaf(node_type):
+    return node_type == NodeType.AND or node_type == NodeType.OR
+
 
 @dataclass
 class Node:
@@ -17,7 +29,7 @@ class Node:
     node_type: NodeType = None
     parent_id: int = None
     depth: int = None
-    children_ids: list = None
+    children_ids: list[int] = None
     
 
 
@@ -35,13 +47,13 @@ def gen_random_partition(array, flatten: bool = True):
         else:
             partition[random_index].append(element)
 
-    if len(partition) == 1:
-        partition = partition[0]
-
     if flatten:
         for i, subset in enumerate(partition):
             if len(subset) == 1:
                 partition[i] = partition[i][0]
+
+    if len(partition) == 1:
+        partition = partition[0]
 
     return partition
 
@@ -142,17 +154,17 @@ def calc_tree_info(tree, root_node_type, num_tasks, order='bfs'):
             children_ids=[]
         ) for i in range(len(tree_traversed))
     ]
-    for node_id, node_type, parent, depth in tree_traversed:
+    for node_id, node_type, parent_id, depth in tree_traversed:
         node_id: int
-        parent: int
+        parent_id: int
         tree_info[node_id].node_id = node_id
         tree_info[node_id].node_type = NodeType(node_type)
-        tree_info[node_id].parent_id = parent
+        tree_info[node_id].parent_id = parent_id
         tree_info[node_id].depth = depth
-        tree_info[parent].children_ids.append(node_id)
+        tree_info[parent_id].children_ids.append(node_id)
 
 
-def gen_tree_advanced(task_num, max_depth=None):
+def gen_tree_advanced(task_num, max_depth=None, strict_AndOr_alternating = True):
     """
     Generate a random AND/OR tree with `task_num` tasks.
     Returns a list of lists or integers, where each element/subelement is a node.
@@ -169,7 +181,7 @@ def gen_tree_advanced(task_num, max_depth=None):
             node_id=i,
             node_type=NodeType.LEAF,
             parent_id=None,
-            depth=None,
+            depth=0,
             children_ids=[]
         ) for i in range(task_num)
     ] + [
@@ -184,23 +196,25 @@ def gen_tree_advanced(task_num, max_depth=None):
     
     global_node_id = task_num
     node_ids_list = list(range(task_num))
+    non_leaf_node_type = np.random.choice([NodeType.AND, NodeType.OR])
     depth = 0
     for _ in range(max_depth - 1):
         partition = gen_random_partition(node_ids_list, flatten=True)
         node_ids_list = []
         depth += 1
+        non_leaf_node_type = reverse_node_type(non_leaf_node_type)
         for subset in partition:
             if isinstance(subset, list):
                 global_node_id += 1
                 tree_info.append(Node(
                     node_id=global_node_id,
-                    node_type=np.random.choice(NodeType.AND, NodeType.OR),
+                    node_type=np.random.choice([NodeType.AND, NodeType.OR]),
                     parent_id=None,
                     depth=depth,
                     children_ids=subset
                 ))
                 for leaf in subset:
-                    tree_info[leaf].parent = global_node_id
+                    tree_info[leaf].parent_id = global_node_id
                 node_ids_list.append(global_node_id)
             else:
                 tree_info[subset].parent_id = global_node_id
@@ -212,7 +226,7 @@ def gen_tree_advanced(task_num, max_depth=None):
     global_node_id += 1
     tree_info.append(Node(
         node_id=global_node_id,
-        node_type=np.random.choice(NodeType.AND, NodeType.OR),
+        node_type=np.random.choice([NodeType.AND, NodeType.OR]),
         parent_id=None,
         depth=depth,
         children_ids=node_ids_list
@@ -222,7 +236,8 @@ def gen_tree_advanced(task_num, max_depth=None):
 
     # Fix depth values, since we have been using the reversed depth
     for node in tree_info:
-        node.depth = depth - node.depth
+        if node.depth is not None:
+            node.depth = depth - node.depth
 
     return tree_info
 
@@ -262,3 +277,48 @@ def convert_tree_to_list(tree_info : list[Node]):
             return node.node_id
         return [_helper(tree_info[i]) for i in node.children_ids]
     return _helper(tree_info[-1])
+
+
+def normal_form_advanced(tree_info : list[Node], form : str = 'DNF'):
+    """
+    Convert a tree to a normal form. (CNF or DNF)
+    Worst case Complexity: At least O(e^(n/e)) where n is the number of leafs in the tree.
+    """
+
+    def _normalized(node : Node):
+        print(node.node_id)
+        if not is_not_leaf(node.node_type):
+            return node.node_id
+        # Flatten the tree
+        new_children_ids = []
+        for child_id in node.children_ids:
+            if tree_info[child_id].node_type == node.node_type:
+                new_children_ids.extend(tree_info[child_id].children_ids)
+            else:
+                new_children_ids.append(child_id)
+
+        new_tree = [_normalized(tree_info[i]) for i in new_children_ids]
+
+        list_clauses = [clause for clause in new_tree if isinstance(clause, list)]
+        literal_clauses = [clause for clause in new_tree if not isinstance(clause, list)]
+        target_node_type = NodeType.AND if form.upper() == 'CNF' else NodeType.OR
+        
+        if node.node_type == target_node_type:
+            return literal_clauses + [leaf for subtree in list_clauses for leaf in subtree]
+        else:
+            new_normal_tree = []
+            for combination in itertools.product(*list_clauses):
+                new_combination = []
+                # Flatten the combination
+                for item in combination:
+                    if isinstance(item, list):
+                        new_combination.extend(item)
+                    else:
+                        new_combination.append(item)
+                # Add the literal clauses
+                new_combination.extend(literal_clauses)
+                # Add the new combination to the new tree
+                new_normal_tree.append(new_combination)
+            return new_normal_tree
+        
+    return _normalized(tree_info[-1])
