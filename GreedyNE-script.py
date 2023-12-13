@@ -8,6 +8,9 @@ from GreedyNE import *
 from GenProblem import *
 from CalcUpperBound import *
 from Solutions import *
+from GenAndOrTree import *
+from GreedyNETree import *
+
 
 def append_record(record, filename, typ):
     with open(filename, "a") as f:
@@ -48,6 +51,7 @@ def main():
             agents_cap, agents = gen_agents(
                 a_taskInds, tasks, max_capNum_agent, capabilities, max_capVal
             )
+            tree_info = gen_tree_advanced(task_num=task_num)
             # num_com = np.prod([1 if a_taskInds[i] == [] else len(a_taskInds[i])+1 for i in range(0,agent_num)])
 
             num_com = reduce(
@@ -120,6 +124,20 @@ def main():
                 result["g_iter"],
                 " re-assignment",
                 result["g_reass"],
+            )
+
+            start = time.perf_counter()
+            r_tree = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
+            end = time.perf_counter()
+            print(
+                "GreedyNE Tree time:",
+                end - start,
+                "result:",
+                r_tree[1],
+                "iteration:",
+                r_tree[2],
+                " re-assignment",
+                r_tree[3],
             )
 
             if t_max_edge < 15:
