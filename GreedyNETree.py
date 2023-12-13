@@ -104,19 +104,19 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
         move_vals_exit = temp_node_values[query_a_index][root_node_index] - realtime_node_values[root_node_index]
 
         # Initialize the max move values
-        max_move_id = task_num
-        max_move_value = move_vals_exit
+        max_move = (move_vals_exit, 0, task_num)
         
         # Calculate the best move values for each agent
-        for j in range(0, task_num):
-            if j not in a_taskInds[query_a_index]:
+        for j in a_taskInds[query_a_index]:
+
+            if j == allocation_structure[query_a_index]:
                 continue
         
             sys_added_value = task_cons[query_a_index][j]
             node_val = temp_node_values[query_a_index][j] + sys_added_value
             parent_id = tree_info[j].parent_id
 
-            while parent_id is not None and parent_id != len(tasks) and sys_added_value > max_move_value - move_vals_exit:
+            while parent_id is not None and parent_id != len(tasks) and (sys_added_value + move_vals_exit) >= max_move[0] and sys_added_value > 0:
 
                 # Break conditions: 
                 # parent_id is invalid (None) (i.e, node_id is root node) or parent_id is the dummy node
@@ -144,11 +144,18 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
             
             move_val_j = move_vals_exit + sys_added_value
             
-            if move_val_j > max_move_value:
-                max_move_value = move_val_j
-                max_move_id = j
+            if move_val_j > max_move[0]:
+                max_move = (move_val_j, task_cons[query_a_index][j] - cur_con[query_a_index], j)
+            elif(move_val_j == max_move[0]):
+                # Tie breaking: choose the one with higher contribution
+                if task_cons[query_a_index][j] > task_cons[query_a_index][max_move[2]]:
+                    max_move = (move_val_j, task_cons[query_a_index][j] - cur_con[query_a_index], j)
+                elif task_cons[query_a_index][j] == task_cons[query_a_index][max_move[2]]:
+                    # Tie breaking: choose the one that moves out of the dummy coalition
+                    if max_move[2] == task_num or j < max_move[2]:
+                        max_move = (move_val_j, task_cons[query_a_index][j] - cur_con[query_a_index], j)
         
-        return (max_move_value, max_move_id)
+        return max_move
     
 
     for i in range(0, agent_num):        
@@ -159,7 +166,7 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
     iteration_count = 0
     while True:
         iteration_count += 1
-        feasible_choices = [i for i in range(0, agent_num) if max_moves[i][0] > 0]
+        feasible_choices = [i for i in range(0, agent_num) if max_moves[i][0] > 0 or (max_moves[i][0] == 0 and (max_moves[i][1] > 0 or (max_moves[i][1] == 0 and max_moves[i][2] != task_num and allocation_structure[i] == task_num)))]
         if len(feasible_choices) == 0:
             break  # reach NE solution
         # when eps = 1, it's Random, when eps = 0, it's Greedy
@@ -169,9 +176,9 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
         else:
             # exploitation: allocation else based on reputation or efficiency
             # selected_a_index = np.argmax(max_moves)
-            selected_a_index = max(enumerate(max_moves), key=lambda x: x[1])[0]
+            selected_a_index = max(enumerate(max_moves), key=lambda x: (x[1][0], x[1][1], x[1][2] != task_num and allocation_structure[x[0]] == task_num))[0]
             
-        new_t_index = max_moves[selected_a_index][1]
+        new_t_index = max_moves[selected_a_index][2]
 
         # perfom move
         old_t_index = allocation_structure[selected_a_index]
@@ -179,7 +186,7 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
         coalition_structure[new_t_index].append(selected_a_index)
         coalition_structure[old_t_index].remove(selected_a_index)
 
-        print("iteration:", iteration_count, "  selected_a_index:", selected_a_index, "  old_t_index:", old_t_index, "  new_t_index:", new_t_index, "  max_moves:", max_moves[selected_a_index])
+        # print("iteration:", iteration_count, "  selected_a_index:", selected_a_index, "  old_t_index:", old_t_index, "  new_t_index:", new_t_index, "  max_moves:", max_moves[selected_a_index], "  task_cons_old:", task_cons[selected_a_index][old_t_index], "  task_cons_new:", task_cons[selected_a_index][new_t_index], "  cur_con:", cur_con[selected_a_index])
 
         # update agents in the new coalition
         affected_t_indexes = []
