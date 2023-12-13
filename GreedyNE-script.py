@@ -116,36 +116,64 @@ def main():
             result["g_reass"] = r[3]
             result["g_t"] = end - start
             print(
-                "eGreedy time:",
+                "eGreedy:",
+                "\ttime:",
                 result["g_t"],
-                "result:",
+                "\tresult:",
                 result["g"],
-                "iteration:",
+                "\titeration:",
                 result["g_iter"],
-                " re-assignment",
+                "\tre-assignment",
                 result["g_reass"],
             )
 
             start = time.perf_counter()
-            r_tree = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
+            rand_sol_a, rand_sol_reward = random(agents, tasks, constraints, gamma=gamma)
             end = time.perf_counter()
             print(
-                "GreedyNE Tree time:",
+                "Random Solution:",
+                "\ttime:",
                 end - start,
-                "result:",
+                "\tresult:",
+                rand_sol_reward,
+            )
+
+            start = time.perf_counter()
+            r_tree = greedyNETree1(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
+            end = time.perf_counter()
+            print(
+                "GreedyNE Tree 1:",
+                "\ttime:",
+                end - start,
+                "\tresult:",
                 r_tree[1],
-                "iteration:",
+                "\titeration:",
                 r_tree[2],
-                " re-assignment",
+                "\tre-assignment",
                 r_tree[3],
+            )
+            start = time.perf_counter()
+            r_tree_2 = greedyNETree2(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
+            end = time.perf_counter()
+            print(
+                "GreedyNE Tree 2:",
+                "\ttime:",
+                end - start,
+                "\tresult:",
+                r_tree_2[1],
+                "\titeration:",
+                r_tree_2[2],
+                "\tre-assignment",
+                r_tree_2[3],
             )
             start = time.perf_counter()
             rand_sol_a, rand_sol_reward = random_solution(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
             end = time.perf_counter()
             print(
-                "Random Solution time:",
+                "Random Solution Tree:",
+                "\ttime:",
                 end - start,
-                "result:",
+                "\tresult:",
                 rand_sol_reward,
             )
 
