@@ -70,7 +70,7 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
     # temp_node_values is used to store the alternative node values when the agents are removed from the system (i.e., moved to the dummy coalition)
     temp_node_values = [[0 for node in tree_info] for i in range(0, agent_num)]
 
-    def update_temp_node_values(query_a_index):
+    def calc_temp_node_values(query_a_index):
         """
         Calculate temp_node_values[i], for when agent i is removed from the system
         """
@@ -96,15 +96,15 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
         return temp_node_values_i
     
 
-    def update_max_move_values(query_a_index):
+    def calc_max_move_value(query_a_index):
         """
         Calculate the best move values for agent query_a_index
         """
         # Movement value for moving agent from current coalition to dummy coalition (removing the agent from the system):
-        move_vals_exit = temp_node_values[query_a_index][root_node_index] - realtime_node_values[root_node_index]
+        sys_exit_value = temp_node_values[query_a_index][root_node_index] - realtime_node_values[root_node_index]
 
-        # Initialize the max move values
-        max_move = (move_vals_exit, 0, task_num)
+        # Initialize the max move value
+        max_move = (sys_exit_value, 0, task_num)
         
         # Calculate the best move values for each agent
         for j in a_taskInds[query_a_index]:
@@ -116,7 +116,7 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
             node_val = temp_node_values[query_a_index][j] + sys_added_value
             parent_id = tree_info[j].parent_id
 
-            while parent_id is not None and parent_id != len(tasks) and (sys_added_value + move_vals_exit) >= max_move[0] and sys_added_value > 0:
+            while parent_id is not None and parent_id != len(tasks) and (sys_added_value + sys_exit_value) >= max_move[0] and sys_added_value > 0:
 
                 # Break conditions: 
                 # parent_id is invalid (None) (i.e, node_id is root node) or parent_id is the dummy node
@@ -142,7 +142,7 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
                 node_val = parent_val
                 parent_id = tree_info[parent_id].parent_id
             
-            move_val_j = move_vals_exit + sys_added_value
+            move_val_j = sys_exit_value + sys_added_value
             
             if move_val_j > max_move[0]:
                 max_move = (move_val_j, task_cons[query_a_index][j] - cur_con[query_a_index], j)
@@ -159,8 +159,8 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
     
 
     for i in range(0, agent_num):        
-        temp_node_values[i] = update_temp_node_values(i)
-        max_moves[i] = update_max_move_values(i)
+        temp_node_values[i] = calc_temp_node_values(i)
+        max_moves[i] = calc_max_move_value(i)
 
             
     iteration_count = 0
@@ -247,8 +247,8 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
         for i in range(0, agent_num):
             if (i != selected_a_index):
                 # We can skip calculating the temp_node_values of the selected agent, since it's just been updated
-                temp_node_values[i] = update_temp_node_values(i)
-            max_moves[i] = update_max_move_values(i)
+                temp_node_values[i] = calc_temp_node_values(i)
+            max_moves[i] = calc_max_move_value(i)
                 
 
     return (
