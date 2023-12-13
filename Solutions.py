@@ -207,8 +207,8 @@ def OPD(agents, tasks, constraints, gamma):
     a_taskInds = [list(con) for con in constraints[0]]
     t_agentInds = [list(con) for con in constraints[1]]
 
-    a_ubs = [[0] * a_taskInds[i] for i in range(0, agent_num)]
-    a_lbs = [[0] * a_taskInds[i] for i in range(0, agent_num)]
+    a_ubs = [[0] * len(a_taskInds[i]) for i in range(0, agent_num)]
+    a_lbs = [[0] * len(a_taskInds[i]) for i in range(0, agent_num)]
 
     for j in range(0, task_num):
         linked_agentInds = t_agentInds[j]
