@@ -121,7 +121,7 @@ def greedyNETree1(agents, tasks, constraints, tree_info : list[Node], root_node_
                 # Break conditions: 
                 # parent_id is invalid (None) (i.e, node_id is root node) or parent_id is the dummy node
                 # sys_added_value <= 0
-                # sys_added_value + move_vals_exit <= max_move_value
+                # (sys_added_value + sys_exit_value) < best_move_value
 
                 # max_move_value only increases, and thus (max_move_value - move_vals_exit) always >= 0
                 # meanwhile, sys_added_value only decreases
@@ -355,7 +355,7 @@ def greedyNETree2(agents, tasks, constraints, tree_info : list[Node], root_node_
                     # Break conditions: 
                     # parent_id is invalid (None) (i.e, node_id is root node) or parent_id is the dummy node
                     # sys_added_value <= 0
-                    # sys_added_value + move_vals_exit <= max_move_value
+                    # (sys_added_value + sys_exit_value) < best_move_value
 
                     # max_move_value only increases, and thus (max_move_value - move_vals_exit) always >= 0
                     # meanwhile, sys_added_value only decreases
