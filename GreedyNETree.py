@@ -38,7 +38,7 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
 
     # Initialize the coalition structure and contribution values of each agent to its current task
     if coalition_structure == None or coalition_structure == []:
-        coalition_structure = [[]] * task_num + [range(agent_num)]  # current coalition structure, the last one is dummy coalition
+        coalition_structure = [[]] * task_num + [list(range(agent_num))]  # current coalition structure, the last one is dummy coalition
         cur_con = [0] * agent_num
     else:
         for j in range(0, task_num + 1):
@@ -148,7 +148,7 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
                 max_move_value = move_val_j
                 max_move_id = j
         
-        return (max_move_id, max_move_value)
+        return (max_move_value, max_move_id)
     
 
     for i in range(0, agent_num):        
@@ -159,7 +159,7 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
     iteration_count = 0
     while True:
         iteration_count += 1
-        feasible_choices = [i for i in range(0, agent_num) if max_moves[i][1] > 0]
+        feasible_choices = [i for i in range(0, agent_num) if max_moves[i][0] > 0]
         if len(feasible_choices) == 0:
             break  # reach NE solution
         # when eps = 1, it's Random, when eps = 0, it's Greedy
@@ -168,9 +168,10 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
             selected_a_index = np.random.choice(feasible_choices)
         else:
             # exploitation: allocation else based on reputation or efficiency
-            selected_a_index = np.argmax(max_moves)
+            # selected_a_index = np.argmax(max_moves)
+            selected_a_index = max(enumerate(max_moves), key=lambda x: x[1])[0]
             
-        new_t_index = max_moves[selected_a_index][0]
+        new_t_index = max_moves[selected_a_index][1]
 
         # perfom move
         old_t_index = allocation_structure[selected_a_index]
