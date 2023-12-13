@@ -34,12 +34,12 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
     task_num = len(tasks)
 
     # each indicate the current task that agent i is allocated to, if = N, means not allocated
-    allocation_structure = [task_num] * agent_num
+    allocation_structure = [task_num for i in range(0, agent_num)]
 
     # Initialize the coalition structure and contribution values of each agent to its current task
     if coalition_structure == None or coalition_structure == []:
-        coalition_structure = [[]] * task_num + [list(range(agent_num))]  # current coalition structure, the last one is dummy coalition
-        cur_con = [0] * agent_num
+        coalition_structure = [[] for j in range(0, task_num)] + [list(range(0, agent_num))]  # current coalition structure, the last one is dummy coalition
+        cur_con = [0 for i in range(0, agent_num)]
     else:
         for j in range(0, task_num + 1):
             for i in coalition_structure[j]:
@@ -62,13 +62,13 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
     ]
 
     # Max move values for each agent. Move value of an agent to new coalition j is the difference in the system value when the agent is moved from its current coalition to j.
-    max_moves = [(task_num, 0)] * agent_num
+    max_moves = [(task_num, 0) for i in range(0, agent_num)]
 
     # Node values for the current coalition structure
-    realtime_node_values = [0] * len(tree_info)
+    realtime_node_values = [0 for node in tree_info]
     
     # temp_node_values is used to store the alternative node values when the agents are removed from the system (i.e., moved to the dummy coalition)
-    temp_node_values = [[0] * len(tree_info)] * agent_num
+    temp_node_values = [[0 for node in tree_info] for i in range(0, agent_num)]
 
     def update_temp_node_values(query_a_index):
         """
@@ -178,6 +178,8 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
         allocation_structure[selected_a_index] = new_t_index
         coalition_structure[new_t_index].append(selected_a_index)
         coalition_structure[old_t_index].remove(selected_a_index)
+
+        print("iteration:", iteration_count, "  selected_a_index:", selected_a_index, "  old_t_index:", old_t_index, "  new_t_index:", new_t_index, "  max_moves:", max_moves[selected_a_index])
 
         # update agents in the new coalition
         affected_t_indexes = []

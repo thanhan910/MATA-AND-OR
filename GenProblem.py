@@ -17,7 +17,7 @@ def gen_tasks(task_num, max_capNum, capabilities):
                 a=capabilities, size=np.random.randint(3, max_capNum + 1), replace=False
             )
         )
-        for _ in range(task_num)
+        for j in range(0, task_num)
     ]
 
 
@@ -37,7 +37,7 @@ def gen_constraints(agent_num, task_num, power=1, a_min_edge=2, t_max_edge=5):
 
     # calculate the max and min edges for agents
     available_seats = math.floor(t_max_edge * task_num)
-    a_taskInds = [[]] * agent_num
+    a_taskInds = [[] for i in range(0, agent_num)]
     a_taskNums = []
     for i in range(0, agent_num):
         a_max_edge = min((available_seats - a_min_edge * (agent_num - 1 - i)), t_max_edge, task_num)
@@ -50,7 +50,7 @@ def gen_constraints(agent_num, task_num, power=1, a_min_edge=2, t_max_edge=5):
         
         available_seats -= a_taskNum
 
-    t_agents_counts = [0] * task_num  # each indicate the current number of agents on the task
+    t_agents_counts = [0 for j in range(0, task_num)]  # each indicate the current number of agents on the task
 
     # make sure no further draw for those reached the maximum limit.
     t_indexes = [j for j in range(0, task_num) if t_agents_counts[j] < t_max_edge]
@@ -157,7 +157,7 @@ def gen_agents_random(capabilities, agent_num, max_capNum, max_capVal):
     """
     caps_lists = []
     contri_lists = []
-    for _ in range(0, agent_num):
+    for i in range(0, agent_num):
         a_cap_num = np.random.randint(1, max_capNum + 1)  # the num of caps the agent will have
         a_caps = set(np.random.choice(capabilities, a_cap_num, replace=False))
         caps_list = sorted(list(a_caps))

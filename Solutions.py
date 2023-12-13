@@ -32,7 +32,7 @@ def resultCal(agents, tasks, constraints, r_msgs, q_msgs, iteration, iter_over, 
 
 def convert_alloc_to_CS(tasks, allocation_structure):
     task_num = len(tasks)
-    coalition_structure = [[]] * task_num
+    coalition_structure = [[] for i in range(0, task_num)]
     for i, j in enumerate(allocation_structure):
         if j < task_num:  # means allocated (!=task_num)
             coalition_structure[j].append(i)
@@ -66,8 +66,8 @@ def FMS(agents, tasks, constraints, gamma, time_bound=500):
         for j in range(0, task_num)
     ]
 
-    q_flags = [False] * agent_num
-    r_flags = [False] * task_num
+    q_flags = [False for i in range(0, agent_num)]
+    r_flags = [False for j in range(0, task_num)]
 
     iteration = 0
     while True:
@@ -208,8 +208,8 @@ def OPD(agents, tasks, constraints, gamma):
     a_taskInds = [list(con) for con in constraints[0]]
     t_agentInds = [list(con) for con in constraints[1]]
 
-    a_ubs = [[0] * len(a_taskInds[i]) for i in range(0, agent_num)]
-    a_lbs = [[0] * len(a_taskInds[i]) for i in range(0, agent_num)]
+    a_ubs = [[0 for j in a_taskInds[i]] for i in range(0, agent_num)]
+    a_lbs = [[0 for j in a_taskInds[i]] for i in range(0, agent_num)]
 
     for j in range(0, task_num):
         linked_agentInds = t_agentInds[j]

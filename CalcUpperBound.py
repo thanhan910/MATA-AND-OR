@@ -50,8 +50,8 @@ def upperBound_ver2(capabilities, tasks, agents, constraints):
         # sort the agents based on their contribution values for the capability c, in descending order
         cap_rank_pos = np.argsort(a_cap_vals)[::-1]
 
-        a_cap_vals_ordered = [0] * agent_num
-        a_cap_tasks_ordered = [[]] * agent_num
+        a_cap_vals_ordered = [0 for _ in range(0, agent_num)]
+        a_cap_tasks_ordered = [[] for _ in range(0, agent_num)]
         for p, pos in enumerate(cap_rank_pos):
             a_cap_vals_ordered[p] = a_cap_vals[pos]
             a_cap_tasks_ordered[p] = a_cap_tasks[pos]

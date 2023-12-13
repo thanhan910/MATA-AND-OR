@@ -28,10 +28,10 @@ def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[])
     a_taskInds = constraints[0]
     agent_num = len(agents)
     task_num = len(tasks)
-    allocation_structure = [task_num] * agent_num  # each indicate the current task that agent i is allocated to, if = N, means not allocated
+    allocation_structure = [task_num for i in range(0, agent_num)]  # each indicate the current task that agent i is allocated to, if = N, means not allocated
     if coalition_structure == []:
-        coalition_structure = [[]] * (task_num + 1)  # current coalition structure, the last one is dummy coalition
-        cur_con = [0] * agent_num
+        coalition_structure = [[] for j in range(0, task_num + 1)]  # current coalition structure, the last one is dummy coalition
+        cur_con = [0 for j in range(0, agent_num)]
     else:
         coalition_structure.append([])
         for j in range(0, task_num):
