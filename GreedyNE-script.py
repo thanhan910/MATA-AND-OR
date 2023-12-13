@@ -139,6 +139,15 @@ def main():
                 " re-assignment",
                 r_tree[3],
             )
+            start = time.perf_counter()
+            rand_sol_a, rand_sol_reward = random_solution(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
+            end = time.perf_counter()
+            print(
+                "Random Solution time:",
+                end - start,
+                "result:",
+                rand_sol_reward,
+            )
 
             if t_max_edge < 15:
                 start = time.perf_counter()

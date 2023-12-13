@@ -2,7 +2,8 @@ import itertools
 import numpy as np
 import time
 
-from CalcRewards import sys_reward_agents, task_reward
+from CalcRewards import sys_reward_agents, task_reward, sys_rewards_tree_agents
+from GenAndOrTree import Node
 
 def resultCal(agents, tasks, constraints, r_msgs, q_msgs, iteration, iter_over, converge, gamma=1):
     a_taskInds = constraints[0]
@@ -407,3 +408,14 @@ def random(agents, tasks, constraints, gamma=1):
     a_taskInds = constraints[0]
     alloc = [np.random.choice(a_taskInds[i] + [task_num]) for i in range(0, agent_num)]
     return alloc, sys_reward_agents(agents, tasks, alloc, gamma)
+
+
+def random_solution(agents, tasks, constraints, tree_info: list[Node], gamma=1):
+    '''
+    Randomly allocate tasks to agents
+    '''
+    task_num = len(tasks)
+    agent_num = len(agents)
+    a_taskInds = constraints[0]
+    allocation_structure = [np.random.choice(a_taskInds[i] + [task_num]) for i in range(0, agent_num)]
+    return allocation_structure, sys_rewards_tree_agents(tree_info, tasks, agents, allocation_structure, gamma=gamma)
