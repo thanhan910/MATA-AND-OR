@@ -1,4 +1,5 @@
 import numpy as np
+import random
 
 from CalcRewards import *
 from TreeUtils import *
@@ -373,8 +374,8 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
                     break  # reach NE solution
                 if np.random.uniform() <= eps:
                     # exploration: random allocation
-                    selected_a_index = np.random.choice(i for i in agentIds if len(feasible_choices[i]) > 0)
-                    new_t_index = np.random.choice(feasible_choices[selected_a_index])
+                    selected_a_index = random.choice([i for i in agentIds if len(feasible_choices[i]) > 0])
+                    new_t_index = random.choice(feasible_choices[selected_a_index])[2]
                 else:
                     best_move = (float("-inf"), float("-inf"), 0, 0, 0)
                     for i in agentIds:

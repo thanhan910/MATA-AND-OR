@@ -128,7 +128,7 @@ def main():
             )
 
             start = time.perf_counter()
-            rand_sol_a, rand_sol_reward = random(agents, tasks, constraints, gamma=gamma)
+            rand_sol_a, rand_sol_reward = random_solution_heterogeneous(agents, tasks, constraints, gamma=gamma)
             end = time.perf_counter()
             print(
                 "Random Solution:",
@@ -181,7 +181,36 @@ def main():
                 r_tree_2[3],
             )
             start = time.perf_counter()
-            rand_sol_a, rand_sol_reward = random_solution(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
+            r_tree_0 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=0, eps=1)
+            end = time.perf_counter()
+            print(
+                "GreedyNE Tree 0, eps=1:",
+                "\ttime:",
+                end - start,
+                "\tresult:",
+                r_tree_0[1],
+                "\titeration:",
+                r_tree_0[2],
+                "\tre-assignment",
+                r_tree_0[3],
+            )
+
+            start = time.perf_counter()
+            r_tree_1 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=1, eps=1)
+            end = time.perf_counter()
+            print(
+                "GreedyNE Tree 1, eps=1:",
+                "\ttime:",
+                end - start,
+                "\tresult:",
+                r_tree_1[1],
+                "\titeration:",
+                r_tree_1[2],
+                "\tre-assignment",
+                r_tree_1[3],
+            )
+            start = time.perf_counter()
+            rand_sol_a, rand_sol_reward = random_solution_and_or_tree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
             end = time.perf_counter()
             print(
                 "Random Solution Tree:",

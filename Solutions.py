@@ -399,7 +399,7 @@ def FMSNormalised(agents,tasks,constraints,gamma,time_bound = 500):
            
 
 
-def random(agents, tasks, constraints, gamma=1):
+def random_solution_heterogeneous(agents, tasks, constraints, gamma=1):
     '''
     Randomly allocate tasks to agents
     '''
@@ -410,7 +410,7 @@ def random(agents, tasks, constraints, gamma=1):
     return alloc, sys_reward_agents(agents, tasks, alloc, gamma)
 
 
-def random_solution(agents, tasks, constraints, tree_info: list[Node], gamma=1):
+def random_solution_and_or_tree(agents, tasks, constraints, tree_info: list[Node], gamma=1):
     '''
     Randomly allocate tasks to agents
     '''
