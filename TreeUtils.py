@@ -266,7 +266,7 @@ def traverse_tree_advanced(tree_info : list[Node], order='dfs', root_node_index=
             yield node
         if node.children_ids is not None:
             for child_id in node.children_ids:
-                frontier.append([tree_info[child_id], child_id])
+                frontier.append(tree_info[child_id])
 
 
 def convert_tree_to_list(tree_info : list[Node]):
