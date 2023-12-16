@@ -153,7 +153,7 @@ def main():
                 r_tree[3],
             )
             start = time.perf_counter()
-            r_tree_2 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, strict_greedy=False)
+            r_tree_2 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, strict_greedy=True)
             end = time.perf_counter()
             print(
                 "GreedyNE Tree 2:",
