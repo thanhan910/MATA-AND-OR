@@ -242,7 +242,7 @@ def gen_tree_advanced(task_num, max_depth=None, strict_AndOr_alternating = True)
     return tree_info
 
 
-def traverse_tree_advanced(tree_info : list[Node], order='dfs'):
+def traverse_tree_advanced(tree_info : list[Node], order='dfs', root_node_index=-1, leaf_only=False):
     """
     Traverse tree using depth-first search.
     
@@ -259,10 +259,11 @@ def traverse_tree_advanced(tree_info : list[Node], order='dfs'):
     For each node, `node_type` is either 'AND', 'OR', or 'LEAF'.
     """
     frontier_pop_index = 0 if order.lower() == 'bfs' else -1
-    frontier = [tree_info[-1]]
+    frontier = [tree_info[root_node_index]]
     while len(frontier) > 0:
         node = frontier.pop(frontier_pop_index)
-        yield node
+        if leaf_only and node.node_type == NodeType.LEAF:
+            yield node
         if node.children_ids is not None:
             for child_id in node.children_ids:
                 frontier.append([tree_info[child_id], child_id])
