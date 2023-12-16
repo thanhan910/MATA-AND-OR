@@ -137,23 +137,37 @@ def main():
                 "\tresult:",
                 rand_sol_reward,
             )
+            start = time.perf_counter()
+            r_tree_0 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=0)
+            end = time.perf_counter()
+            print(
+                "GreedyNE Tree 0:",
+                "\ttime:",
+                end - start,
+                "\tresult:",
+                r_tree_0[1],
+                "\titeration:",
+                r_tree_0[2],
+                "\tre-assignment",
+                r_tree_0[3],
+            )
 
             start = time.perf_counter()
-            r_tree = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, strict_greedy=False)
+            r_tree_1 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=1)
             end = time.perf_counter()
             print(
                 "GreedyNE Tree 1:",
                 "\ttime:",
                 end - start,
                 "\tresult:",
-                r_tree[1],
+                r_tree_1[1],
                 "\titeration:",
-                r_tree[2],
+                r_tree_1[2],
                 "\tre-assignment",
-                r_tree[3],
+                r_tree_1[3],
             )
             start = time.perf_counter()
-            r_tree_2 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, strict_greedy=True)
+            r_tree_2 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=2)
             end = time.perf_counter()
             print(
                 "GreedyNE Tree 2:",
@@ -215,6 +229,8 @@ def main():
 
             # increase the task_num
             t_max_edge += 1
+        
+        break
 
 
 if __name__ == "__main__":
