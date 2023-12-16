@@ -87,7 +87,7 @@ def greedyNETree1(agents, tasks, constraints, tree_info : list[Node], root_node_
                 temp_node_values_i[parent_id] -= sys_lost_value
             
             elif(tree_info[parent_id].node_type == NodeType.OR):
-                new_parent_value = max([temp_node_values[i][j] for j in tree_info[parent_id].children_ids])
+                new_parent_value = max([temp_node_values_i[j] for j in tree_info[parent_id].children_ids])
                 sys_lost_value = temp_node_values_i[parent_id] - new_parent_value
                 temp_node_values_i[parent_id] = new_parent_value
 
@@ -321,7 +321,7 @@ def greedyNETree2(agents, tasks, constraints, tree_info : list[Node], root_node_
                 temp_node_values_i[parent_id] -= sys_lost_value
             
             elif(tree_info[parent_id].node_type == NodeType.OR):
-                new_parent_value = max([temp_node_values[i][j] for j in tree_info[parent_id].children_ids])
+                new_parent_value = max([temp_node_values_i[j] for j in tree_info[parent_id].children_ids])
                 sys_lost_value = temp_node_values_i[parent_id] - new_parent_value
                 temp_node_values_i[parent_id] = new_parent_value
 
