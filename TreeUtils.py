@@ -242,7 +242,7 @@ def gen_tree_advanced(task_num, max_depth=None, strict_AndOr_alternating = True)
     return tree_info
 
 
-def traverse_tree_advanced(tree_info : list[Node], order='dfs', root_node_index=-1, leaf_only=False):
+def traverse_tree_advanced(tree_info : list[Node], order='dfs', root_node_index=-1):
     """
     Traverse tree using depth-first search.
     
@@ -262,8 +262,7 @@ def traverse_tree_advanced(tree_info : list[Node], order='dfs', root_node_index=
     frontier = [tree_info[root_node_index]]
     while len(frontier) > 0:
         node = frontier.pop(frontier_pop_index)
-        if leaf_only and node.node_type == NodeType.LEAF:
-            yield node
+        yield node
         if node.children_ids is not None:
             for child_id in node.children_ids:
                 frontier.append(tree_info[child_id])
