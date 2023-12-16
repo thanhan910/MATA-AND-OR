@@ -1,4 +1,4 @@
-from GenAndOrTree import Node, NodeType
+from TreeUtils import Node, NodeType
 
 
 def task_reward(task, agents, gamma=1):

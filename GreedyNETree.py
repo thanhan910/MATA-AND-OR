@@ -1,7 +1,7 @@
 import numpy as np
 
 from CalcRewards import *
-from GenAndOrTree import *
+from TreeUtils import *
 
 
 def agent_contribution(agents, tasks, query_agentIndex, query_taskIndex, coalition, constraints, gamma=1):

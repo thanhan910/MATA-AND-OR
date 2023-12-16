@@ -8,7 +8,7 @@ from GreedyNE import *
 from GenProblem import *
 from CalcUpperBound import *
 from Solutions import *
-from GenAndOrTree import *
+from TreeUtils import *
 from GreedyNETree import *
 
 

@@ -3,7 +3,7 @@ import numpy as np
 import time
 
 from CalcRewards import sys_reward_agents, task_reward, sys_rewards_tree_agents
-from GenAndOrTree import Node
+from TreeUtils import Node
 
 def resultCal(agents, tasks, constraints, r_msgs, q_msgs, iteration, iter_over, converge, gamma=1):
     a_taskInds = constraints[0]
