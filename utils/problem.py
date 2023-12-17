@@ -173,7 +173,7 @@ def gen_agents_random(capabilities, agent_num, max_capNum, max_capVal):
 
 
 
-def calc_constraints(agents, tasks):
+def get_constraints(agents, tasks):
     """
     Calculate the constraints of the system, where the system consists of tasks and agents with constraints.
 

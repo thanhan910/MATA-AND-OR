@@ -1,8 +1,8 @@
 import numpy as np
 import random
 
-from CalcRewards import *
-from TreeUtils import *
+from .rewards import *
+from .tree_utils import traverse_tree_info
 
 
 def agent_contribution(agents, tasks, query_agentIndex, query_taskIndex, coalition, constraints, gamma=1):
@@ -261,7 +261,7 @@ def greedyNETree(agents, tasks, constraints, tree_info : list[Node], root_node_i
     if root_node_index < 0:
         root_node_index = len(tree_info) + root_node_index
     
-    nodes = list(traverse_tree_advanced(tree_info, order='dfs', root_node_index=root_node_index)) + [tree_info[task_num]]
+    nodes = list(traverse_tree_info(tree_info, order='dfs', root_node_index=root_node_index)) + [tree_info[task_num]]
     leaf_nodes = [node.node_id for node in nodes if node.node_type == NodeType.LEAF]
     a_taskInds = [[j for j in constraints[0][i] if j in leaf_nodes] for i in range(0, len(agents))]
     

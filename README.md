@@ -2,6 +2,28 @@
 
 2023/24 Summer Research Project. 
 
+## Program details
+
+### Program execution
+
+Execute the following command to run the program:
+
+```bash
+python main.py
+```
+
+### Folder structure
+
+heterogeneous/ - contains the code for the original heterogeneous task allocation problem, where tasks are independent.
+
+andortree/ - contains the code for the AND-OR tree task allocation problem.
+
+utils/ - contains general utility functions, including the functions that generates tasks, agents, and constraints.
+
+main.py - The main driver script that generate problems and evaluates solutions.
+
+## Project details
+
 ### Project title: Multiagent coordination and self-organisation to enable resilient satellite constellations.
 
 ### Project description

@@ -4,12 +4,16 @@ import json
 import os
 import statistics
 
-from GreedyNE import * 
-from GenProblem import *
-from CalcUpperBound import *
-from Solutions import *
-from TreeUtils import *
-from GreedyNETree import *
+from utils.problem import *
+
+from heterogeneous.GreedyNE import * 
+from heterogeneous.solutions import *
+from heterogeneous.upper_bound import *
+
+from andortree.tree_utils import *
+from andortree.upper_bound import upperBoundTree_allNodes_v1, upperBoundTree_allNodes_v2, upperBoundTree_root
+from andortree.GreedyNE import *
+from andortree.solutions import random_solution_and_or_tree
 
 
 def append_record(record, filename, typ):
@@ -51,7 +55,7 @@ def main():
             agents_cap, agents = gen_agents(
                 a_taskInds, tasks, max_capNum_agent, capabilities, max_capVal
             )
-            tree_info = gen_tree_advanced(task_num=task_num)
+            tree_info = gen_tree_info(task_num=task_num)
             # num_com = np.prod([1 if a_taskInds[i] == [] else len(a_taskInds[i])+1 for i in range(0,agent_num)])
 
             num_com = reduce(
