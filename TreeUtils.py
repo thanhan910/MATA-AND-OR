@@ -322,3 +322,37 @@ def normal_form_advanced(tree_info : list[Node], form : str = 'DNF'):
             return new_normal_tree
         
     return _normalized(tree_info[-1])
+
+
+def get_leafs_for_each_node(tree_info : list[Node], root_node_index=-1):
+    leafs_list = [[] for _ in range(len(tree_info))]
+    leaf_nodes = [node for node in tree_info if node.node_type == NodeType.LEAF]
+    for leaf_node in leaf_nodes:
+        leafs_list[leaf_node.node_id].append(leaf_node.node_id)
+        parent_id = leaf_node.parent_id
+        while parent_id is not None:
+            leafs_list[parent_id].append(leaf_node.node_id)
+            parent_id = tree_info[parent_id].parent_id
+    return leafs_list
+
+
+def get_nodes_constraints(tree_info : list[Node], constraints, root_node_index=-1):
+    """
+    Get the constraints for each node in the tree.
+    """
+    nodes_agents = [[] for _ in range(len(tree_info))]
+    leafs_list = get_leafs_for_each_node(tree_info)
+    for node in tree_info:
+        if node.node_type == NodeType.LEAF:
+            nodes_agents[node.node_id] = constraints[1][node.node_id]
+        else:
+            nodes_agents[node.node_id] = list(itertools.chain(
+                *[constraints[1][leaf] for leaf in leafs_list[node.node_id]]
+            ))
+
+    a_nodes = [[] for a in constraints[0]]
+    for node_id, node_As in enumerate(nodes_agents):
+        for a in node_As:
+            a_nodes[a].append(node_id)
+
+    return a_nodes, nodes_agents

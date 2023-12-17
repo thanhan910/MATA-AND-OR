@@ -107,6 +107,9 @@ def main():
                 "  t_den_min:",
                 result["t_den_min"],
             )
+            print("-----------------------------------")
+            print("Heterogeneous Tasks")
+            print("-----------------------------------")
 
             start = time.perf_counter()
             r = eGreedy2(agents, tasks, constraints, gamma=gamma)
@@ -137,11 +140,36 @@ def main():
                 "\tresult:",
                 rand_sol_reward,
             )
+
+            print("-----------------------------------")
+            print("AND-OR Goal Tree Tasks")
+            print("-----------------------------------")
+
+            nodes_constraints = get_nodes_constraints(tree_info, constraints, root_node_index=-1)
+
+            start = time.perf_counter()
+            up_tree_root = upperBoundTree_root(tree_info, capabilities, tasks, agents)
+            end = time.perf_counter()
+
+            print("UP Tree:", up_tree_root, "\ttime:", end - start)
+
+            start = time.perf_counter()
+            up_tree_1 = upperBoundTree_allNodes_v1(tree_info, capabilities, tasks, agents, nodes_constraints)
+            end = time.perf_counter()
+
+            print("UP1:", up_tree_1, "\ttime:", end - start)
+
+            start = time.perf_counter()
+            up_tree_2 = upperBoundTree_allNodes_v2(tree_info, capabilities, tasks, agents, nodes_constraints)
+            end = time.perf_counter()
+
+            print("UP2:", up_tree_2, "\ttime:", end - start)
+
             start = time.perf_counter()
             r_tree_0 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=0)
             end = time.perf_counter()
             print(
-                "GreedyNE Tree 0:",
+                "GreedyNE 0:",
                 "\ttime:",
                 end - start,
                 "\tresult:",
@@ -156,7 +184,7 @@ def main():
             r_tree_1 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=1)
             end = time.perf_counter()
             print(
-                "GreedyNE Tree 1:",
+                "GreedyNE 1:",
                 "\ttime:",
                 end - start,
                 "\tresult:",
@@ -170,7 +198,7 @@ def main():
             r_tree_2 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=2)
             end = time.perf_counter()
             print(
-                "GreedyNE Tree 2:",
+                "GreedyNE 2:",
                 "\ttime:",
                 end - start,
                 "\tresult:",
@@ -184,7 +212,7 @@ def main():
             r_tree_0 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=0, eps=1)
             end = time.perf_counter()
             print(
-                "GreedyNE Tree 0, eps=1:",
+                "GreedyNE 0, eps=1:",
                 "\ttime:",
                 end - start,
                 "\tresult:",
@@ -199,7 +227,7 @@ def main():
             r_tree_1 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=1, eps=1)
             end = time.perf_counter()
             print(
-                "GreedyNE Tree 1, eps=1:",
+                "GreedyNE 1, eps=1:",
                 "\ttime:",
                 end - start,
                 "\tresult:",
@@ -213,12 +241,17 @@ def main():
             rand_sol_a, rand_sol_reward = random_solution_and_or_tree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
             end = time.perf_counter()
             print(
-                "Random Solution Tree:",
+                "Random Solution:",
                 "\ttime:",
                 end - start,
                 "\tresult:",
                 rand_sol_reward,
             )
+
+
+            print("-----------------------------------")
+            print("Heterogeneous Tasks (OPD, FMS)")
+            print("-----------------------------------")
 
             if t_max_edge < 15:
                 start = time.perf_counter()
@@ -250,11 +283,11 @@ def main():
                 )
             print()
 
-            # append data and result
-            files = {"density100_result_cap": [result, ""]}
+            # # append data and result
+            # files = {"density100_result_cap": [result, ""]}
 
-            for filename in list(files.keys()):
-                append_record(files[filename][0], filename, typ=files[filename][1])
+            # for filename in list(files.keys()):
+            #     append_record(files[filename][0], filename, typ=files[filename][1])
 
             # increase the task_num
             t_max_edge += 1
