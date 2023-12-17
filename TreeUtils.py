@@ -346,9 +346,9 @@ def get_nodes_constraints(tree_info : list[Node], constraints, root_node_index=-
         if node.node_type == NodeType.LEAF:
             nodes_agents[node.node_id] = constraints[1][node.node_id]
         else:
-            nodes_agents[node.node_id] = list(itertools.chain(
+            nodes_agents[node.node_id] = list(set(itertools.chain(
                 *[constraints[1][leaf] for leaf in leafs_list[node.node_id]]
-            ))
+            ))) # Concat lists and remove duplicates
 
     a_nodes = [[] for a in constraints[0]]
     for node_id, node_As in enumerate(nodes_agents):
