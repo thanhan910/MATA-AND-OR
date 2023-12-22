@@ -14,6 +14,7 @@ from andortree.tree_utils import *
 from andortree.upper_bound import upperBoundTree_allNodes_v1, upperBoundTree_allNodes_v2, upperBoundTree_root
 from andortree.GreedyNE import *
 from andortree.solutions import random_solution_and_or_tree
+from andortree.GreedyNEClass import GreedyNE
 
 
 def append_record(record, filename, typ):
@@ -170,6 +171,22 @@ def main():
             print("UP2:", up_tree_2, "\ttime:", end - start)
 
             start = time.perf_counter()
+            r_tree_solver = GreedyNE(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
+            result_c = r_tree_solver.solve()
+            end = time.perf_counter()
+            print(
+                "GreedyNE Class:",
+                "\ttime:",
+                end - start,
+                "\tresult:",
+                result_c[1],
+                "\titeration:",
+                result_c[2],
+                "\tre-assignment",
+                result_c[3],
+            )
+
+            start = time.perf_counter()
             r_tree_0 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=0)
             end = time.perf_counter()
             print(
@@ -251,7 +268,6 @@ def main():
                 "\tresult:",
                 rand_sol_reward,
             )
-
 
             print("-----------------------------------")
             print("Heterogeneous Tasks (OPD, FMS)")
