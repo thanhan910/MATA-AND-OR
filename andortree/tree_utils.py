@@ -220,3 +220,27 @@ def get_nodes_constraints(tree_info : list[Node], constraints, root_node_index=-
             a_nodes[a].append(node_id)
 
     return a_nodes, nodes_agents
+
+
+def get_children_info(parent_info : dict[int, int]):
+    """
+    Get the children info for each node in the tree.
+    """
+    children_info = { parent_id: [] for parent_id in parent_info.values() }
+    for node_id, parent_id in parent_info.items():
+        children_info[parent_id].append(node_id)
+    return children_info
+
+
+def get_leafs_info(parent_info : dict[int, int], leaf_ids : list[int]):
+    """
+    Get the leaf info for each node in the tree.
+    """
+    leafs_info = { node_id: [] for node_id in parent_info }
+    for leaf_id in leaf_ids:
+        leafs_info[leaf_id].append(leaf_id)
+        node_id = parent_info[leaf_id]
+        while node_id is not None:
+            leafs_info[node_id].append(leaf_id)
+            node_id = parent_info[node_id]
+    return leafs_info
