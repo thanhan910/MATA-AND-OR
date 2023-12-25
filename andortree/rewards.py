@@ -31,7 +31,7 @@ def sys_rewards_tree_agents(tree_info : list[Node], tasks, agents, allocation_st
     return sys_rewards_node(tree_info[root_node_index])
 
 
-def sys_rewards_tree_tasks(tree_info, root_node_type, tasks, agents, coalition_structure, root_node_index=-1, gamma=1):
+def sys_rewards_tree_tasks(tree_info, tasks, agents, coalition_structure, root_node_index=-1, gamma=1):
     """
     Calculate the reward of the system, given the coalition structure: task -> agents (coalition)
     """
