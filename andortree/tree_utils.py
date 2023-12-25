@@ -244,3 +244,18 @@ def get_leafs_info(parent_info : dict[int, int], leaf_ids : list[int]):
             leafs_info[node_id].append(leaf_id)
             node_id = parent_info[node_id]
     return leafs_info
+
+
+def get_parents_sequence(tree_info : list[Node]):
+    """
+    Get the parents sequence for each leaf in the tree.
+    """
+    leaf_nodes = [node for node in tree_info if node.node_type == NodeType.LEAF]
+    parents_sequence = { leaf_node.node_id: [] for leaf_node in leaf_nodes }
+    for leaf_node in leaf_nodes:
+        parents_sequence[leaf_node.node_id].append(leaf_node.node_id)
+        parent_id = leaf_node.parent_id
+        while parent_id is not None:
+            parents_sequence[leaf_node.node_id].append(parent_id)
+            parent_id = tree_info[parent_id].parent_id
+    return parents_sequence
