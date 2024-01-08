@@ -95,6 +95,9 @@ def calc_alt_node_values(query_a_id : int, parent_info, children_info, tree_info
     return alt_node_values
 
 
+def calc_alt_node_values_all_agents(agent_num : int, task_num : int, tasks : list[Task], tree_info : list[Node], allocation_structure : list[int], cur_con : list[int], realtime_node_values : list[int], root_node_index : int =-1):
+    
+
 
 def greedyNEX(agents, tasks, constraints, tree_info : list[Node], agentIds=None, coalition_structure=None, root_node_index=-1, eps=0, gamma=1):
     """
