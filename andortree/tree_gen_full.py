@@ -46,11 +46,11 @@ def gen_random_composition(n, lower_bound, upper_bound, numbers_count):
     return composition
 
 
-def gen_random_tree(num_leafs : int, min_depth : int = 1, max_depth : int = None, num_non_leafs : int = None, min_num_children : int = 2, max_num_children : int = None):
+def gen_random_tree(num_leafs : int, min_depth : int = 1, num_non_leafs : int = None, min_num_children : int = 2, max_num_children : int = None):
     """
-    Generates a random tree with the given number of leafs, minimum depth, maximum depth, non_leafs_count, and the given maximum and minimum number of children possible per non-leaf node.
+    Generates a random tree with the given number of leafs, minimum depth, non_leafs_count, and the given maximum and minimum number of children possible per non-leaf node.
 
-    Priority is given to the minimum depth, then to the number of non-leaf nodes, then to the minimum children count, then max children coun, then finally max depth.
+    Priority is given to the minimum depth, then to the number of non-leaf nodes, then to the minimum children count, then max children count.
     """
     depth_info : dict[int, int] = {}
     parent_info : dict[int, int] = {}
@@ -61,7 +61,6 @@ def gen_random_tree(num_leafs : int, min_depth : int = 1, max_depth : int = None
     assert min_num_children >= 2
     assert max_num_children is None or max_num_children >= min_num_children
     assert min_depth >= 1
-    assert max_depth is None or max_depth >= min_depth
 
     if max_num_children is None:
         max_num_children = num_leafs
@@ -116,10 +115,10 @@ def gen_random_tree(num_leafs : int, min_depth : int = 1, max_depth : int = None
         for _ in range(num_children):
             global_id_iterator += 1
 
-            if max_depth is not None and new_child_depth >= max_depth:
-                leaf_nodes.append(global_id_iterator)
-            else:
-                frontier.append(global_id_iterator)
+            # if max_depth is not None and new_child_depth >= max_depth:
+            #     leaf_nodes.append(global_id_iterator)
+            # else:
+            frontier.append(global_id_iterator)
 
             children_info[node_id].append(global_id_iterator)
 
@@ -215,9 +214,9 @@ def get_tree_info(tree_info_size : int, depth_info : dict[int, int], parent_info
     ) for node_id in range(tree_info_size)]
 
 
-def gen_tree_info_full(num_leafs : int, min_depth : int = 1, max_depth : int = None, num_non_leafs : int = None, min_num_children : int = 2, max_num_children : int = None, root_node_type : NodeType = None, strict_and_or : bool = True):
+def gen_tree_info_full(num_leafs : int, min_depth : int = 1, num_non_leafs : int = None, min_num_children : int = 2, max_num_children : int = None, root_node_type : NodeType = None, strict_and_or : bool = True):
     """
-    Generate a random tree, with minimum depth, maximum depth, number of non-leaf nodes, and the maximum and minimum number of children per non-leaf node.
+    Generate a random tree, with minimum depth, number of non-leaf nodes, and the maximum and minimum number of children per non-leaf node.
 
     Return a list of Node objects, where each Node object contains information about the node's id, type, parent id, children ids, and depth.
 
@@ -227,7 +226,7 @@ def gen_tree_info_full(num_leafs : int, min_depth : int = 1, max_depth : int = N
     - then non-leaf nodes, from num_leafs + 1 to num_leafs + num_non_leafs - 1 (inclusive)
     - then finally, the root node
     """
-    depth_info, parent_info, children_info, leaf_nodes, num_non_leafs, tree_depth, avg_branching_factor = gen_random_tree(num_leafs=num_leafs, min_depth=min_depth, max_depth=max_depth, num_non_leafs=num_non_leafs, min_num_children=min_num_children, max_num_children=max_num_children)
+    depth_info, parent_info, children_info, leaf_nodes, num_non_leafs, tree_depth, avg_branching_factor = gen_random_tree(num_leafs=num_leafs, min_depth=min_depth, num_non_leafs=num_non_leafs, min_num_children=min_num_children, max_num_children=max_num_children)
     new_node_ids_map, leaf_nodes, root_node_id = gen_conventional_node_ids(leaf_nodes=leaf_nodes, children_info=children_info, root_node_id=0)
     depth_info, parent_info, children_info = reevaluate_tree(depth_info, parent_info, children_info, new_node_ids_map)
     node_type_info = assign_node_type(depth_info=depth_info, leaf_nodes=leaf_nodes, children_info=children_info, root_node_id=root_node_id,strict_and_or=strict_and_or, root_node_type=root_node_type)
