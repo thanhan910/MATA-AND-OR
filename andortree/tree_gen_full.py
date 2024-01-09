@@ -1,4 +1,4 @@
-from andortree.tree_types import Node, NodeType, reverse_node_type
+from .tree_types import Node, NodeType, reverse_node_type
 import random
 
 
