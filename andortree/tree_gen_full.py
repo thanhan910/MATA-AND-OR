@@ -46,9 +46,34 @@ def gen_random_composition(n, lower_bound, upper_bound, numbers_count):
     return composition
 
 
-def gen_random_tree(num_leafs : int, min_depth : int = 1, num_non_leafs : int = None, min_num_children : int = 2, max_num_children : int = None):
+def assign_depth(num_children_list : list[int], min_depth: int = 1, max_depth: int = None):
     """
-    Generates a random tree with the given number of leafs, minimum depth, non_leafs_count, and the given maximum and minimum number of children possible per non-leaf node.
+    Assigns a depth to each children of each non-leaf node in the tree, based on the node's children count, and accounting for min depth and max depth constraints. 
+
+    The target of this function is to make sure the depth of the entire tree is >= min_depth and <= max_depth.
+    """
+    if max_depth is None:
+        max_depth = len(num_children_list)
+    depth_list : list[list[int]] = [] # depth -> list of nodes with children of depth = depth + 1, and children count in that list
+    slots_list : list[int] = [1]
+    for num_children in num_children_list:
+        # choose a random element and its index from the slots list, where the element value is > 0
+        chosen_slot_index, chosen_slot_value = random.choice([(i, x) for i, x in enumerate(slots_list) if x > 0])
+        # add num_children to the depth list
+        if len(depth_list) <= chosen_slot_index:
+            depth_list.append([])
+        depth_list[chosen_slot_index].append(num_children)
+        # update the slots list
+        slots_list[chosen_slot_index] -= 1
+        if chosen_slot_index + 1 >= len(slots_list):
+            slots_list.append(0)
+        slots_list[chosen_slot_index + 1] += num_children
+    return depth_list
+
+
+def gen_random_tree(num_leafs : int, min_depth : int = 1, num_non_leafs : int = None, min_breath : int = 2, max_breath : int = None):
+    """
+    Generates a random tree with the given number of leafs, minimum depth, non_leafs_count, and the given maximum and minimum breath per non-leaf node.
 
     Priority is given to the minimum depth, then to the number of non-leaf nodes, then to the minimum children count, then max children count.
     """
@@ -58,17 +83,17 @@ def gen_random_tree(num_leafs : int, min_depth : int = 1, num_non_leafs : int = 
 
     depth_info[0] = 0
 
-    assert min_num_children >= 2
-    assert max_num_children is None or max_num_children >= min_num_children
+    assert min_breath >= 2
+    assert max_breath is None or max_breath >= min_breath
     assert min_depth >= 1
 
-    if max_num_children is None:
-        max_num_children = num_leafs
+    if max_breath is None:
+        max_breath = num_leafs
 
     if num_non_leafs is None:
         n = num_leafs - 1
-        lower_bound = min_num_children - 1
-        upper_bound = max_num_children - 1
+        lower_bound = min_breath - 1
+        upper_bound = max_breath - 1
         min_num_non_leafs = min_depth
 
         non_leafs_count_lower_bound = max(min_num_non_leafs, n // upper_bound + (1 if n % upper_bound else 0))
@@ -78,8 +103,8 @@ def gen_random_tree(num_leafs : int, min_depth : int = 1, num_non_leafs : int = 
 
     num_children_list = gen_random_composition(
         n=num_leafs - 1,
-        lower_bound = min_num_children - 1,
-        upper_bound = max_num_children - 1,
+        lower_bound = min_breath - 1,
+        upper_bound = max_breath - 1,
         numbers_count=num_non_leafs,
     )
     num_children_list = [num_children + 1 for num_children in num_children_list]
@@ -226,7 +251,7 @@ def gen_tree_info_full(num_leafs : int, min_depth : int = 1, num_non_leafs : int
     - then non-leaf nodes, from num_leafs + 1 to num_leafs + num_non_leafs - 1 (inclusive)
     - then finally, the root node
     """
-    depth_info, parent_info, children_info, leaf_nodes, num_non_leafs, tree_depth, avg_branching_factor = gen_random_tree(num_leafs=num_leafs, min_depth=min_depth, num_non_leafs=num_non_leafs, min_num_children=min_num_children, max_num_children=max_num_children)
+    depth_info, parent_info, children_info, leaf_nodes, num_non_leafs, tree_depth, avg_branching_factor = gen_random_tree(num_leafs=num_leafs, min_depth=min_depth, num_non_leafs=num_non_leafs, min_breath=min_num_children, max_breath=max_num_children)
     new_node_ids_map, leaf_nodes, root_node_id = gen_conventional_node_ids(leaf_nodes=leaf_nodes, children_info=children_info, root_node_id=0)
     depth_info, parent_info, children_info = reevaluate_tree(depth_info, parent_info, children_info, new_node_ids_map)
     node_type_info = assign_node_type(depth_info=depth_info, leaf_nodes=leaf_nodes, children_info=children_info, root_node_id=root_node_id,strict_and_or=strict_and_or, root_node_type=root_node_type)
