@@ -4,9 +4,6 @@ from enum import Enum
 import random
 
 
-
-
-
 def gen_tree(
         num_leaves: int, 
         min_num_internals : int = 1,  
@@ -56,27 +53,21 @@ def gen_tree(
         if len(shallow_leaves) > 0:
             chosen_depth = random.choice(list(shallow_leaves.keys()))
 
-            current_num_internals += 1
-            
             # Choose a random value for the degree of the parent
             
-
+            current_num_internals += 1
+            
             min_tba_num_leaves = sum([len(l) * (min_degree ** (min_leaf_depth - d) - 1) for d, l in shallow_leaves.items()])
 
-            x = num_leaves - current_num_leaves - min_tba_num_leaves
+            tba_degree_upper_bound_2 = min_degree + (num_leaves - current_num_leaves - min_tba_num_leaves) // (min_degree ** (min_leaf_depth - chosen_depth - 1))
 
             current_num_leaves -= 1
 
             tba_degree_lower_bound = max(min_degree, (num_leaves - current_num_leaves) - (max_degree - 1) * max(0, max_num_internals - current_num_internals))
-            
-            tba_degree_upper_bound_1 = min_degree + x // (min_degree ** (min_leaf_depth - chosen_depth - 1))
 
-            tba_degree_upper_bound_2 = (num_leaves - current_num_leaves) - (min_degree - 1) * max(0, min_num_internals - current_num_internals)
-
+            tba_degree_upper_bound_1 = (num_leaves - current_num_leaves) - (min_degree - 1) * max(0, min_num_internals - current_num_internals)
 
             tba_degree_upper_bound = min(max_degree, tba_degree_upper_bound_1, tba_degree_upper_bound_2)
-
-            print(tba_degree_lower_bound, tba_degree_upper_bound, tba_degree_upper_bound_1, tba_degree_upper_bound_2)
             
             if tba_degree_lower_bound > tba_degree_upper_bound:
                 raise Exception("No valid tree exists with the given parameters.")
@@ -210,8 +201,6 @@ def gen_tree(
     return depth_info, parent_info, children_info, leaves
 
 
-
-
 def gen_conventional_node_ids(leaf_nodes : list[int], children_info : dict[int, list[int]], root_node_id : int = 0):
     """
     Generate new node ids, based on this convention:
@@ -231,9 +220,6 @@ def gen_conventional_node_ids(leaf_nodes : list[int], children_info : dict[int, 
     return new_node_ids_map, new_leaf_nodes, new_root_node_id
 
 
-
-
-
 def reevaluate_tree(depth_info : dict[int, int], parent_info : dict[int, int], children_info : dict[int, int], new_node_ids_map : dict[int, int]):
     """
     Reevaluate tree information based on the new node_id mapping.
@@ -251,10 +237,6 @@ def reevaluate_tree(depth_info : dict[int, int], parent_info : dict[int, int], c
     return new_depth_info, new_parent_info, new_children_info
 
 
-
-
-
-
 class NodeType(Enum):
     AND = "AND"
     OR = "OR"
@@ -268,7 +250,6 @@ def reverse_node_type(node_type):
         return NodeType.AND
     else:
         return node_type
-
 
 
 def assign_node_type(depth_info: dict[int, int], leaf_nodes : list[int], children_info: dict[int, int], root_node_id : int, strict_and_or: bool = True, root_node_type : NodeType = None):
@@ -299,9 +280,6 @@ def assign_node_type(depth_info: dict[int, int], leaf_nodes : list[int], childre
     return node_type_info
 
 
-
-
-
 @dataclass
 class Node:
     node_id: int
@@ -319,9 +297,6 @@ def get_tree_info(tree_info_size : int, depth_info : dict[int, int], parent_info
         children_ids=children_info[node_id] if node_id in children_info else None,
         depth=depth_info[node_id] if node_id in depth_info else None,
     ) for node_id in range(tree_info_size)]
-
-
-
 
 
 def gen_tree_info(
@@ -366,5 +341,3 @@ def gen_tree_info(
     )
 
     return tree_info
-
-
