@@ -23,14 +23,21 @@ def agent_contribution(agents, tasks, query_agentIndex, query_taskIndex, coaliti
         return task_reward(tasks[query_taskIndex], [agents[i] for i in coalition] + [agents[query_agentIndex]], gamma) - cur_reward
 
 
-def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[]):
-    re_assign = 0
+def eGreedy2(
+        agents : list[list[float]], 
+        tasks : list[list[int]], 
+        constraints : tuple[list[list[int]], list[list[int]]],
+        coalition_structure : list[list[int]] = [],
+        eps=0, 
+        gamma=1
+    ):
+    re_assignment_count = 0
     a_taskInds = constraints[0]
     agent_num = len(agents)
     task_num = len(tasks)
     allocation_structure = [task_num for i in range(0, agent_num)]  # each indicate the current task that agent i is allocated to, if = N, means not allocated
-    if coalition_structure == []:
-        coalition_structure = [[] for j in range(0, task_num + 1)]  # current coalition structure, the last one is dummy coalition
+    if coalition_structure is None or coalition_structure == []:
+        coalition_structure = [[] for j in range(0, task_num)] + [list(range(0, agent_num))]  # default coalition structure, the last one is dummy coalition
         cur_con = [0 for j in range(0, agent_num)]
     else:
         coalition_structure.append([])
@@ -46,7 +53,7 @@ def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[])
         [
             agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma)
             if j in a_taskInds[i]
-            else -1000
+            else float("-inf")
             for j in range(0, task_num)
         ] + [0]
         for i in range(0, agent_num)
@@ -73,9 +80,9 @@ def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[])
         for i in range(0, agent_num)
     ]
 
-    iteration = 0
+    iteration_count = 0
     while True:
-        iteration += 1
+        iteration_count += 1
         feasible_choices = [i for i in range(0, agent_num) if max_moveVals[i] > 0]
         if feasible_choices == []:
             break  # reach NE solution
@@ -113,7 +120,7 @@ def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[])
         # update agent in the old coalition (if applicable)
         if (old_t_index != task_num):  
             # if agents indeed moved from another task, we have to change every agent from the old as well
-            re_assign += 1
+            re_assignment_count += 1
             coalition_structure[old_t_index].remove(a_index)
             affected_a_indexes.extend(coalition_structure[old_t_index])
             affected_t_indexes.append(old_t_index)
@@ -150,42 +157,6 @@ def eGreedy2(agents, tasks, constraints, eps=0, gamma=1, coalition_structure=[])
     return (
         coalition_structure,
         sys_rewards_tasks(tasks, agents, coalition_structure, gamma),
-        iteration,
-        re_assign,
+        iteration_count,
+        re_assignment_count,
     )
-
-
-def eGreedyNE2(agents, tasks, constraints, agentIds, taskIds, coalition_structure=[], eps=0, gamma=1):
-    """
-    Solve the problem using GreedyNE, but only consider the agents and tasks in the given agentIds and taskIds
-    """
-    new_agents = [agents[i] for i in agentIds]
-    new_tasks = [tasks[j] for j in taskIds]
-    reverse_taskIds_map = {j: j1 for j1, j in enumerate(taskIds)}
-    reverse_agentIds_map = {i: i1 for i1, i in enumerate(agentIds)}
-    new_constraints = [[], []]
-    for i in agentIds:
-        new_constraints[0].append([reverse_taskIds_map[j] for j in constraints[0][i]])
-    for j in taskIds:
-        new_constraints[1].append([reverse_agentIds_map[i] for i in constraints[1][j]])
-    coalition_structure, sys_reward, iteration_count, re_assign_count = eGreedy2(new_agents, new_tasks, new_constraints, eps, gamma, coalition_structure)
-    return (
-        [agentIds[i] for i in coalition_structure[j]]
-        for j in range(0, len(taskIds))
-    ), sys_reward, iteration_count, re_assign_count
-    
-
-
-def eGreedyDNF(agents, tasks, constraints, dnf_tree, eps=0, gamma=1, coalition_structure=[]):
-    """
-    Solve the problem using GreedyNE when the tasks are organized in a single OR-AND tree (Disjunctive Normal Form)
-    """
-    max_reward = 0
-    for x, subtree in enumerate(dnf_tree):
-        subtasksIds = [subtree] if isinstance(subtree, int) else subtree
-        subagentIds = range(0, len(agents))
-        coalition_structure, sys_reward, iteration_count, re_assign_count = eGreedyNE2(agents, tasks, constraints, subagentIds, subtasksIds, coalition_structure, eps, gamma)
-        if sys_reward > max_reward:
-            max_reward = sys_reward
-            max_coalition_structure = coalition_structure
-    return max_coalition_structure, max_reward, iteration_count, re_assign_count
