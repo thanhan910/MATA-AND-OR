@@ -10,7 +10,8 @@ from heterogeneous.GreedyNE import *
 from heterogeneous.solutions import *
 from heterogeneous.upper_bound import *
 
-from andortree.tree_utils import *
+from andortree.tree_utils_old import get_nodes_constraints
+from andortree.tree_gen import gen_tree_info
 from andortree.upper_bound import upperBoundTree_allNodes_v1, upperBoundTree_allNodes_v2, upperBoundTree_root
 from andortree.GreedyNE import *
 from andortree.solutions import random_solution_and_or_tree

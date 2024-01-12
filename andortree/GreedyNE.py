@@ -2,7 +2,7 @@ import numpy as np
 import random
 
 from .rewards import *
-from .tree_utils import traverse_tree_info
+from .tree_utils_old import traverse_tree_info
 
 
 def agent_contribution(agents, tasks, query_agentIndex, query_taskIndex, coalition, constraints, gamma=1):

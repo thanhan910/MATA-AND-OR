@@ -1,4 +1,4 @@
-from .tree_utils import Node, NodeType
+from .tree_utils_old import Node, NodeType
 
 def task_reward(task, agents, gamma=1):
     # task is represented by a list of capabilities it requires, agents is a list agents, where each represented by a list cap contribution values
