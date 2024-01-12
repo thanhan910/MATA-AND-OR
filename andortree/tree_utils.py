@@ -69,3 +69,61 @@ def get_nodes_constraints(node_type_info : dict[int, int], leaves_list : dict[in
             a_nodes[a].append(node_id)
 
     return a_nodes, nodes_agents
+
+
+def traverse_and_or_tree(node_type_info: dict, children_info: dict, depth_info: dict, root_node_id: int = 0):
+    """
+    Traverses an AND-OR goal tree and yields all possible solutions (subsets of leaves that can be completed to fulfill an AND-OR goal tree).
+    """
+
+    # skipped_nodes = set()
+
+    def traverse_helper(node_id: int) -> list:
+        
+        # print("NODE: ", node_id)
+
+        # if node_type_info[node_id] != NodeType.OR:
+        #     if random.random() < 0.1 and depth_info[node_id] > 2:
+        #         skipped_nodes.add(node_id)
+        #         return
+
+        # If the node is a leaf node (no children)
+        if node_type_info[node_id] == NodeType.LEAF:
+            # print("YIELD: ", node_id)
+            yield [node_id]
+            return
+
+        # For AND nodes, need to combine children subsets
+        if node_type_info[node_id] == NodeType.AND:
+            
+            # leaves_subsets = [list(traverse_and_or_tree(child)) for child in children_info[node_id]]
+
+            stack = [([], 0)]
+            
+            while stack:
+                combination, index = stack.pop()
+                if index >= len(children_info[node_id]):
+                    yield combination
+                else:
+                    # for item in leaves_subsets[index]:
+                    for item in traverse_helper(children_info[node_id][index]):
+                        stack.append((combination + [item], index + 1))
+
+        
+        # For OR nodes, simply yield from each child
+        elif node_type_info[node_id] == NodeType.OR:
+
+            # num_child = len(children_info[node_id])
+            
+            for child in children_info[node_id]:
+                # if random.random() < 0.1 and depth_info[child] > 2 and num_child > 1:
+                #     num_child -= 1
+                #     skipped_nodes.add(child)
+                #     continue
+                yield from traverse_helper(child)
+
+    yield from traverse_helper(root_node_id)
+
+    # return list(traverse_helper(root_node_id)), skipped_nodes
+
+
