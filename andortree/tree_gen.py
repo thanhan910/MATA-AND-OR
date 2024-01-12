@@ -201,42 +201,6 @@ def gen_tree(
     return depth_info, parent_info, children_info, leaves
 
 
-def gen_conventional_node_ids(leaf_nodes : list[int], children_info : dict[int, list[int]], root_node_id : int = 0):
-    """
-    Generate new node ids, based on this convention:
-    - leaf nodes are numbered first, from 0 to len(leaf_nodes) - 1 (inclusive)
-    - then, a dummy node is added. Its id is len(leaf_nodes).
-    - then non-leaf nodes, from len(leaf_nodes) + 1 to len(leaf_nodes) + len(children_info) - 1 (inclusive)
-    - then finally, the root node
-    """
-    middle_nodes = [node_id for node_id in children_info.keys() if node_id != root_node_id and len(children_info[node_id]) > 0]
-    random.shuffle(middle_nodes)
-    random.shuffle(leaf_nodes)
-    # old_dummy_node_id = -1 # stub
-    node_ids_sorted = leaf_nodes + [-1] + middle_nodes + [root_node_id]
-    new_node_ids_map = { old_node_id : new_node_id for new_node_id, old_node_id in enumerate(node_ids_sorted) }
-    new_root_node_id = len(node_ids_sorted) - 1
-    new_leaf_nodes = list(range(len(leaf_nodes)))
-    return new_node_ids_map, new_leaf_nodes, new_root_node_id
-
-
-def reevaluate_tree(depth_info : dict[int, int], parent_info : dict[int, int], children_info : dict[int, int], new_node_ids_map : dict[int, int]):
-    """
-    Reevaluate tree information based on the new node_id mapping.
-    """
-    new_parent_info = {}
-    new_children_info = {}
-    new_depth_info = {}
-    for old_node_id, new_node_id in new_node_ids_map.items():
-        if old_node_id in parent_info:
-            new_parent_info[new_node_id] = new_node_ids_map[parent_info[old_node_id]]
-        if old_node_id in children_info:
-            new_children_info[new_node_id] = [new_node_ids_map[child_id] for child_id in children_info[old_node_id]]
-        if old_node_id in depth_info:
-            new_depth_info[new_node_id] = depth_info[old_node_id]
-    return new_depth_info, new_parent_info, new_children_info
-
-
 class NodeType(Enum):
     AND = "AND"
     OR = "OR"
@@ -279,65 +243,3 @@ def assign_node_type(depth_info: dict[int, int], leaf_nodes : list[int], childre
 
     return node_type_info
 
-
-@dataclass
-class Node:
-    node_id: int
-    node_type: NodeType = None
-    parent_id: int = None
-    depth: int = None
-    children_ids: list[int] = None
-
-
-def get_tree_info(tree_info_size : int, depth_info : dict[int, int], parent_info : dict[int, int], children_info : dict[int, list[int]], node_type_info : dict[int, NodeType]):
-    return [Node(
-        node_id=node_id,
-        node_type=NodeType(node_type_info[node_id]) if node_id in node_type_info else None,
-        parent_id=parent_info[node_id] if node_id in parent_info else None,
-        children_ids=children_info[node_id] if node_id in children_info else None,
-        depth=depth_info[node_id] if node_id in depth_info else None,
-    ) for node_id in range(tree_info_size)]
-
-
-def gen_tree_info(
-        num_leaves: int, 
-        min_num_internals : int = 1,  
-        max_num_internals : int = None, 
-        min_depth : int = 1, 
-        max_depth : int = None, 
-        min_degree : int = 2, 
-        max_degree : int = None,
-        min_leaf_depth: int = 0,
-    ):
-
-    depth_info, parent_info, children_info, leaves = gen_tree(
-        num_leaves=num_leaves,
-        min_num_internals=min_num_internals,
-        max_num_internals=max_num_internals,
-        min_depth=min_depth,
-        max_depth=max_depth,
-        min_degree=min_degree,
-        max_degree=max_degree,
-        min_leaf_depth=min_leaf_depth
-    )
-
-    if depth_info is None:
-        return None
-    
-    leaf_nodes = sum(leaves, [])
-    
-    new_node_ids_map, new_leaf_nodes, new_root_node_id = gen_conventional_node_ids(leaf_nodes=leaf_nodes, children_info=children_info, root_node_id=0)
-
-    new_depth_info, new_parent_info, new_children_info = reevaluate_tree(depth_info=depth_info, parent_info=parent_info, children_info=children_info, new_node_ids_map=new_node_ids_map)
-
-    node_type_info = assign_node_type(depth_info=new_depth_info, leaf_nodes=new_leaf_nodes, children_info=new_children_info, root_node_id=new_root_node_id)
-
-    tree_info = get_tree_info(
-        tree_info_size=len(new_node_ids_map),
-        depth_info=new_depth_info,
-        parent_info=new_parent_info,
-        children_info=new_children_info,
-        node_type_info=node_type_info
-    )
-
-    return tree_info
