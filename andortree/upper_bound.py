@@ -25,34 +25,6 @@ def get_cap_vector_all(capabilities : list[int], tasks : list[list[int]]):
     return [get_cap_vector(capabilities, tasks, j) for j in range(0, len(tasks))]
 
 
-def ubcvector_branch(
-        parent_info : dict[int, int], 
-        node_type_info : dict[int, NodeType],
-        selected_leaf_nodes : list[int], 
-        query_nodeId : int, 
-        leaf2task : dict[int, int],
-        tasks_capVecs : list[np.ndarray],
-        capabilities : list[int], 
-    ):
-    """
-    Calculate the upper bounds of each capability num requirement at each node of the AND-OR goal tree.
-    """
-    nodes_ubcv_info = { n_id : np.zeros(len(capabilities)) for n_id in selected_leaf_nodes }
-    for leaf_id in selected_leaf_nodes:
-        nodes_ubcv_info[leaf_id] = tasks_capVecs[leaf2task[leaf_id]]
-        current_node_id = leaf_id
-        while current_node_id in parent_info and current_node_id != query_nodeId:
-            prev_node_id = current_node_id
-            current_node_id = parent_info[current_node_id]
-            node_type = node_type_info[current_node_id]
-            if node_type == NodeType.OR:
-                nodes_ubcv_info[current_node_id] = np.max([nodes_ubcv_info.get(current_node_id, np.zeros(len(capabilities))), nodes_ubcv_info[prev_node_id]], axis=0)
-            elif node_type == NodeType.AND:
-                nodes_ubcv_info[current_node_id] = np.sum([nodes_ubcv_info.get(current_node_id, np.zeros(len(capabilities))), nodes_ubcv_info[prev_node_id]], axis=0)
-
-    return nodes_ubcv_info
-
-
 def calculate_ubc_vectors(
         node_type_info : dict[int, NodeType],
         parent_info : dict[int, int], 
