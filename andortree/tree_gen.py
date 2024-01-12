@@ -6,6 +6,7 @@ import random
 
 
 
+
 def gen_tree(
         num_leaves: int, 
         min_num_internals : int = 1,  
@@ -13,7 +14,8 @@ def gen_tree(
         min_depth : int = 1, 
         max_depth : int = None, 
         min_degree : int = 2, 
-        max_degree : int = None
+        max_degree : int = None,
+        min_leaf_depth: int = 0,
     ):
     """
     Generates a random tree with the given number of leafs, minimum depth, maximum depth, maximum and minimum depth (number of children possible per internal (non-leaf) node), and maximum and minimum number of internal nodes.
@@ -50,7 +52,41 @@ def gen_tree(
 
     while current_num_leaves < num_leaves:
 
-        if len(leaves) - 1 < min_depth:
+        shallow_leaves = {d: l for d, l in enumerate(leaves) if len(l) > 0 and d < min_leaf_depth}
+        if len(shallow_leaves) > 0:
+            chosen_depth = random.choice(list(shallow_leaves.keys()))
+
+            current_num_internals += 1
+            
+            # Choose a random value for the degree of the parent
+            
+
+            min_tba_num_leaves = sum([len(l) * (min_degree ** (min_leaf_depth - d) - 1) for d, l in shallow_leaves.items()])
+
+            x = num_leaves - current_num_leaves - min_tba_num_leaves
+
+            current_num_leaves -= 1
+
+            tba_degree_lower_bound = max(min_degree, (num_leaves - current_num_leaves) - (max_degree - 1) * max(0, max_num_internals - current_num_internals))
+            
+            tba_degree_upper_bound_1 = min_degree + x // (min_degree ** (min_leaf_depth - chosen_depth - 1))
+
+            tba_degree_upper_bound_2 = (num_leaves - current_num_leaves) - (min_degree - 1) * max(0, min_num_internals - current_num_internals)
+
+
+            tba_degree_upper_bound = min(max_degree, tba_degree_upper_bound_1, tba_degree_upper_bound_2)
+
+            print(tba_degree_lower_bound, tba_degree_upper_bound, tba_degree_upper_bound_1, tba_degree_upper_bound_2)
+            
+            if tba_degree_lower_bound > tba_degree_upper_bound:
+                raise Exception("No valid tree exists with the given parameters.")
+            
+            tba_degree = random.randint(tba_degree_lower_bound, tba_degree_upper_bound)
+
+            parent_id_index = random.randint(0, len(shallow_leaves[chosen_depth]) - 1)
+            parent_id = shallow_leaves[chosen_depth].pop(parent_id_index)
+
+        elif len(leaves) - 1 < min_depth:
             chosen_depth = len(leaves) - 1
             parent_id_index = random.randint(0, len(leaves[chosen_depth]) - 1)
             parent_id = leaves[chosen_depth].pop(parent_id_index)
@@ -95,7 +131,7 @@ def gen_tree(
                 non_max_degree_node_options = [_node for _node, _children in children_info.items() if len(_children) < max_degree]
                 
                 if len(non_max_degree_node_options) == 0:
-                    return None
+                    raise Exception("No valid tree exists with the given parameters.")
                     
                 # Select a pair of nodes, where the first one is not maximum degree and the second one is not minimum degree, such that the first one is higher (closer to the root) than the second one
 
@@ -153,7 +189,7 @@ def gen_tree(
                 )
 
                 if tba_degree_lower_bound > tba_degree_upper_bound:
-                    return None
+                    raise Exception("No valid tree exists with the given parameters.")
                 
                 tba_degree = random.randint(tba_degree_lower_bound, tba_degree_upper_bound)
             
@@ -172,7 +208,6 @@ def gen_tree(
             current_num_leaves += 1
 
     return depth_info, parent_info, children_info, leaves
-
 
 
 
@@ -296,7 +331,8 @@ def gen_tree_info(
         min_depth : int = 1, 
         max_depth : int = None, 
         min_degree : int = 2, 
-        max_degree : int = None
+        max_degree : int = None,
+        min_leaf_depth: int = 0,
     ):
 
     depth_info, parent_info, children_info, leaves = gen_tree(
@@ -306,7 +342,8 @@ def gen_tree_info(
         min_depth=min_depth,
         max_depth=max_depth,
         min_degree=min_degree,
-        max_degree=max_degree
+        max_degree=max_degree,
+        min_leaf_depth=min_leaf_depth
     )
 
     if depth_info is None:
