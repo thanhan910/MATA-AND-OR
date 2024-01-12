@@ -2,6 +2,7 @@ from functools import reduce  # python3 compatibility
 from operator import mul
 import json
 import os
+import random
 import statistics
 
 from utils.problem import *
@@ -10,12 +11,12 @@ from heterogeneous.GreedyNE import *
 from heterogeneous.solutions import *
 from heterogeneous.upper_bound import *
 
-from andortree.tree_utils_old import get_nodes_constraints
-from andortree.tree_gen import gen_tree_info
-from andortree.upper_bound import upperBoundTree_allNodes_v1, upperBoundTree_allNodes_v2, upperBoundTree_root
-from andortree.GreedyNE import *
+from andortree.tree_gen import gen_tree, assign_node_type
+from andortree.tree_utils import get_leaves_list, get_nodes_constraints
+from andortree.upper_bound import upperbound_node_all, upperbound_node_all_min, upperbound_node, calculate_ubc_vectors, get_cap_vector_all
+# from andortree.GreedyNE import *
 from andortree.solutions import random_solution_and_or_tree
-from andortree.GreedyNEClass import GreedyNE
+
 
 
 def append_record(record, filename, typ):
@@ -57,7 +58,6 @@ def main():
             agents_cap, agents = gen_agents(
                 a_taskInds, tasks, max_capNum_agent, capabilities, max_capVal
             )
-            tree_info = gen_tree_info(task_num=task_num)
             # num_com = np.prod([1 if a_taskInds[i] == [] else len(a_taskInds[i])+1 for i in range(0,agent_num)])
 
             num_com = reduce(
@@ -151,116 +151,132 @@ def main():
             print("AND-OR Goal Tree Tasks")
             print("-----------------------------------")
 
-            nodes_constraints = get_nodes_constraints(tree_info, constraints, root_node_index=-1)
+            depth_info, parent_info, children_info, leaves_by_depth = gen_tree(task_num, min_leaf_depth=2)
+            
+            leaf_nodes = sum(leaves_by_depth, [])
+
+            random.shuffle(leaf_nodes)
+
+            leaf2task = {leaf_id : j for j, leaf_id in enumerate(leaf_nodes)}
+
+            node_type_info = assign_node_type(depth_info, children_info, leaf_nodes)
+
+            leaves_list_info = get_leaves_list(parent_info=parent_info, leaf_nodes=leaf_nodes)
+
+            nodes_constraints = get_nodes_constraints(node_type_info=node_type_info, leaves_list_info=leaves_list_info, leaf2task=leaf2task, constraints=constraints)
+
+            tasks_capVecs = get_cap_vector_all(capabilities, tasks)
+
+            ubcv_info = calculate_ubc_vectors(node_type_info, parent_info, leaves_list_info, leaf2task, tasks_capVecs, capabilities, query_nodeId=0)
 
             start = time.perf_counter()
-            up_tree_root = upperBoundTree_root(tree_info, capabilities, tasks, agents)
+            up_tree_root = upperbound_node(ubcv_info, capabilities, agents, nodes_constraints, query_nodeId=0)
             end = time.perf_counter()
 
             print("UP Tree:", up_tree_root, "\ttime:", end - start)
 
             start = time.perf_counter()
-            up_tree_1 = upperBoundTree_allNodes_v1(tree_info, capabilities, tasks, agents, nodes_constraints)
+            nodes_upper_bound = upperbound_node_all(children_info, ubcv_info, capabilities, agents, nodes_constraints, query_nodeId=0)
             end = time.perf_counter()
 
-            print("UP1:", up_tree_1, "\ttime:", end - start)
+            print("UP1:", nodes_upper_bound, "\ttime:", end - start)
 
             start = time.perf_counter()
-            up_tree_2 = upperBoundTree_allNodes_v2(tree_info, capabilities, tasks, agents, nodes_constraints)
+            up_tree_2 = upperbound_node_all_min(nodes_upper_bound, node_type_info, children_info, query_nodeId=0)
             end = time.perf_counter()
 
             print("UP2:", up_tree_2, "\ttime:", end - start)
 
-            start = time.perf_counter()
-            r_tree_solver = GreedyNE(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
-            result_c = r_tree_solver.solve()
-            end = time.perf_counter()
-            print(
-                "GreedyNE Class:",
-                "\ttime:",
-                end - start,
-                "\tresult:",
-                result_c[1],
-                "\titeration:",
-                result_c[2],
-                "\tre-assignment",
-                result_c[3],
-            )
+            # start = time.perf_counter()
+            # r_tree_solver = GreedyNE(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
+            # result_c = r_tree_solver.solve()
+            # end = time.perf_counter()
+            # print(
+            #     "GreedyNE Class:",
+            #     "\ttime:",
+            #     end - start,
+            #     "\tresult:",
+            #     result_c[1],
+            #     "\titeration:",
+            #     result_c[2],
+            #     "\tre-assignment",
+            #     result_c[3],
+            # )
 
-            start = time.perf_counter()
-            r_tree_0 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=0)
-            end = time.perf_counter()
-            print(
-                "GreedyNE 0:",
-                "\ttime:",
-                end - start,
-                "\tresult:",
-                r_tree_0[1],
-                "\titeration:",
-                r_tree_0[2],
-                "\tre-assignment",
-                r_tree_0[3],
-            )
+            # start = time.perf_counter()
+            # r_tree_0 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=0)
+            # end = time.perf_counter()
+            # print(
+            #     "GreedyNE 0:",
+            #     "\ttime:",
+            #     end - start,
+            #     "\tresult:",
+            #     r_tree_0[1],
+            #     "\titeration:",
+            #     r_tree_0[2],
+            #     "\tre-assignment",
+            #     r_tree_0[3],
+            # )
 
-            start = time.perf_counter()
-            r_tree_1 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=1)
-            end = time.perf_counter()
-            print(
-                "GreedyNE 1:",
-                "\ttime:",
-                end - start,
-                "\tresult:",
-                r_tree_1[1],
-                "\titeration:",
-                r_tree_1[2],
-                "\tre-assignment",
-                r_tree_1[3],
-            )
-            start = time.perf_counter()
-            r_tree_2 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=2)
-            end = time.perf_counter()
-            print(
-                "GreedyNE 2:",
-                "\ttime:",
-                end - start,
-                "\tresult:",
-                r_tree_2[1],
-                "\titeration:",
-                r_tree_2[2],
-                "\tre-assignment",
-                r_tree_2[3],
-            )
-            start = time.perf_counter()
-            r_tree_0 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=0, eps=1)
-            end = time.perf_counter()
-            print(
-                "GreedyNE 0, eps=1:",
-                "\ttime:",
-                end - start,
-                "\tresult:",
-                r_tree_0[1],
-                "\titeration:",
-                r_tree_0[2],
-                "\tre-assignment",
-                r_tree_0[3],
-            )
+            # start = time.perf_counter()
+            # r_tree_1 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=1)
+            # end = time.perf_counter()
+            # print(
+            #     "GreedyNE 1:",
+            #     "\ttime:",
+            #     end - start,
+            #     "\tresult:",
+            #     r_tree_1[1],
+            #     "\titeration:",
+            #     r_tree_1[2],
+            #     "\tre-assignment",
+            #     r_tree_1[3],
+            # )
+            # start = time.perf_counter()
+            # r_tree_2 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=2)
+            # end = time.perf_counter()
+            # print(
+            #     "GreedyNE 2:",
+            #     "\ttime:",
+            #     end - start,
+            #     "\tresult:",
+            #     r_tree_2[1],
+            #     "\titeration:",
+            #     r_tree_2[2],
+            #     "\tre-assignment",
+            #     r_tree_2[3],
+            # )
+            # start = time.perf_counter()
+            # r_tree_0 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=0, eps=1)
+            # end = time.perf_counter()
+            # print(
+            #     "GreedyNE 0, eps=1:",
+            #     "\ttime:",
+            #     end - start,
+            #     "\tresult:",
+            #     r_tree_0[1],
+            #     "\titeration:",
+            #     r_tree_0[2],
+            #     "\tre-assignment",
+            #     r_tree_0[3],
+            # )
 
+            # start = time.perf_counter()
+            # r_tree_1 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=1, eps=1)
+            # end = time.perf_counter()
+            # print(
+            #     "GreedyNE 1, eps=1:",
+            #     "\ttime:",
+            #     end - start,
+            #     "\tresult:",
+            #     r_tree_1[1],
+            #     "\titeration:",
+            #     r_tree_1[2],
+            #     "\tre-assignment",
+            #     r_tree_1[3],
+            # )
             start = time.perf_counter()
-            r_tree_1 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=1, eps=1)
-            end = time.perf_counter()
-            print(
-                "GreedyNE 1, eps=1:",
-                "\ttime:",
-                end - start,
-                "\tresult:",
-                r_tree_1[1],
-                "\titeration:",
-                r_tree_1[2],
-                "\tre-assignment",
-                r_tree_1[3],
-            )
-            start = time.perf_counter()
-            rand_sol_a, rand_sol_reward = random_solution_and_or_tree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
+            rand_sol_a, rand_sol_reward = random_solution_and_or_tree( node_type_info, children_info, leaf2task, tasks, agents, constraints, gamma)
             end = time.perf_counter()
             print(
                 "Random Solution:",

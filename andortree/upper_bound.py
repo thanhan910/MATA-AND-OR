@@ -94,7 +94,7 @@ def upperbound_node_all(
 
     descendant_nodes = list(traverse_tree(children_info, root_node_id=query_nodeId))
     
-    nodes_caps_ranked = { 
+    return { 
         node_id : upperbound_node(
             ubcv_info,
             capabilities,
@@ -102,11 +102,6 @@ def upperbound_node_all(
             nodes_constraints,
             query_nodeId=node_id
         )
-        for node_id in descendant_nodes
-    }
-    
-    return {
-        node_id : sum([sum(nodes_caps_ranked[node_id][c][:int(ubcv_info[node_id][c])]) for c in capabilities]) 
         for node_id in descendant_nodes
     }
 
