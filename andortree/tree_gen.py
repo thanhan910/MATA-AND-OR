@@ -1,7 +1,5 @@
-
-from dataclasses import dataclass
-from enum import Enum
 import random
+from .node_type import NodeType, reverse_node_type
 
 
 def gen_tree(
@@ -201,22 +199,15 @@ def gen_tree(
     return depth_info, parent_info, children_info, leaves
 
 
-class NodeType(Enum):
-    AND = "AND"
-    OR = "OR"
-    LEAF = "LEAF"
-    DUMMY = "DUMMY"
 
-def reverse_node_type(node_type):
-    if node_type == NodeType.AND:
-        return NodeType.OR
-    elif node_type == NodeType.OR:
-        return NodeType.AND
-    else:
-        return node_type
-
-
-def assign_node_type(depth_info: dict[int, int], leaf_nodes : list[int], children_info: dict[int, int], root_node_id : int, strict_and_or: bool = True, root_node_type : NodeType = None):
+def assign_node_type(
+        depth_info: dict[int, int], 
+        children_info: dict[int, int], 
+        leaf_nodes : list[int], 
+        root_node_id : int = 0, 
+        strict_and_or: bool = True, 
+        root_node_type : NodeType = None
+    ):
     """
     Randomly assigns a node type to each node in the tree, where the node type is either "AND", "OR", or "LEAF".
     """
@@ -242,4 +233,3 @@ def assign_node_type(depth_info: dict[int, int], leaf_nodes : list[int], childre
             node_type_info[node_id] = random.choice([NodeType.AND, NodeType.OR])
 
     return node_type_info
-
