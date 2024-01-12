@@ -89,7 +89,7 @@ def upperbound_node_all(
         query_nodeId=0 
     ):
     """
-    Calculate the upper bound of the reward (utility) at each node of the AND-OR goal tree.
+    Calculate the upper bound of the reward (utility) at each descendant of the queried node in the AND-OR goal tree.
     """
 
     descendant_nodes = list(traverse_tree(children_info, root_node_id=query_nodeId))
@@ -142,3 +142,16 @@ def upperbound_node_all_min(
     _min_upper_bound(query_nodeId)
 
     return nodes_upper_bound_min
+
+
+def upperbound_nodes_min(
+        nodes_upper_bound : dict[int, float],
+        nodes_upper_bound_min : dict[int, float],
+        selected_nodes : list[int]
+    ):
+    """
+    Calculate the upper bound of the reward (utility) of the system, where the system is composed of the selected nodes in the AND-OR goal tree (AND of selected nodes).
+    """    
+    up_1 = sum(nodes_upper_bound[n_id] for n_id in selected_nodes)
+    up_2 = sum(nodes_upper_bound_min[n_id] for n_id in selected_nodes)
+    return min(up_1, up_2)
