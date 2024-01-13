@@ -1,8 +1,6 @@
 import numpy as np
-import random
 
-from .rewards import *
-from .tree_utils import traverse_tree, traverse_and_or_tree
+from .rewards import task_reward, sys_rewards_tasks
 
 
 def agent_contribution(agents, tasks, query_agentIndex, query_taskIndex, coalition, constraints, gamma=1):
