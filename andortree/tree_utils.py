@@ -95,7 +95,7 @@ def traverse_and_or_tree(node_type_info: dict, children_info: dict, depth_info: 
         # If the node is a leaf node (no children)
         if node_type_info[node_id] == NodeType.LEAF:
             # print("YIELD: ", node_id)
-            yield [node_id]
+            yield [node_id], [node_id]
             return
 
         # For AND nodes, need to combine children subsets
@@ -103,16 +103,16 @@ def traverse_and_or_tree(node_type_info: dict, children_info: dict, depth_info: 
             
             # leaves_subsets = [list(traverse_and_or_tree(child)) for child in children_info[node_id]]
 
-            stack = [([], 0)]
+            stack = [([], [node_id], 0)]
             
             while stack:
-                combination, index = stack.pop()
+                combination, combination_path, index = stack.pop()
                 if index >= len(children_info[node_id]):
-                    yield combination
+                    yield combination, combination_path
                 else:
                     # for item in leaves_subsets[index]:
-                    for item in traverse_helper(children_info[node_id][index]):
-                        stack.append((combination + item, index + 1))
+                    for item, path in traverse_helper(children_info[node_id][index]):
+                        stack.append((combination + item, combination_path + path, index + 1))
 
         
         # For OR nodes, simply yield from each child
@@ -125,7 +125,8 @@ def traverse_and_or_tree(node_type_info: dict, children_info: dict, depth_info: 
                 #     num_child -= 1
                 #     skipped_nodes.add(child)
                 #     continue
-                yield from traverse_helper(child)
+                for item, path in traverse_helper(child):
+                    yield item, [node_id] + path
 
     yield from traverse_helper(root_node_id)
 
