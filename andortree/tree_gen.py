@@ -72,8 +72,8 @@ def gen_tree(
             
             tba_degree = random.randint(tba_degree_lower_bound, tba_degree_upper_bound)
 
-            parent_id_index = random.randint(0, len(shallow_leaves[chosen_depth]) - 1)
-            parent_id = shallow_leaves[chosen_depth].pop(parent_id_index)
+            parent_id_index = random.randint(0, len(leaves[chosen_depth]) - 1)
+            parent_id = leaves[chosen_depth].pop(parent_id_index)
 
         elif len(leaves) - 1 < min_depth:
             chosen_depth = len(leaves) - 1
