@@ -40,14 +40,14 @@ def gen_tree(
     children_info[root_id] = []
     depth_info[root_id] = 0
     
-    leaves : list[list[int]] = [[root_id]] # depth -> list of leaves of that depth
+    leaves_by_depth : list[list[int]] = [[root_id]] # depth -> list of leaves of that depth
 
     current_num_leaves = 1
     current_num_internals = 0
 
     while current_num_leaves < num_leaves:
 
-        shallow_leaves = {d: l for d, l in enumerate(leaves) if len(l) > 0 and d < min_leaf_depth}
+        shallow_leaves = {d: l for d, l in enumerate(leaves_by_depth) if len(l) > 0 and d < min_leaf_depth}
         if len(shallow_leaves) > 0:
             chosen_depth = random.choice(list(shallow_leaves.keys()))
 
@@ -72,13 +72,13 @@ def gen_tree(
             
             tba_degree = random.randint(tba_degree_lower_bound, tba_degree_upper_bound)
 
-            parent_id_index = random.randint(0, len(leaves[chosen_depth]) - 1)
-            parent_id = leaves[chosen_depth].pop(parent_id_index)
+            parent_id_index = random.randint(0, len(leaves_by_depth[chosen_depth]) - 1)
+            parent_id = leaves_by_depth[chosen_depth].pop(parent_id_index)
 
-        elif len(leaves) - 1 < min_depth:
-            chosen_depth = len(leaves) - 1
-            parent_id_index = random.randint(0, len(leaves[chosen_depth]) - 1)
-            parent_id = leaves[chosen_depth].pop(parent_id_index)
+        elif len(leaves_by_depth) - 1 < min_depth:
+            chosen_depth = len(leaves_by_depth) - 1
+            parent_id_index = random.randint(0, len(leaves_by_depth[chosen_depth]) - 1)
+            parent_id = leaves_by_depth[chosen_depth].pop(parent_id_index)
 
             current_num_internals += 1
             current_num_leaves -= 1
@@ -93,7 +93,7 @@ def gen_tree(
 
         else:
             # Choose a random depth for the parent (the leaf to add children to)
-            depths_options = [d for d, v in enumerate(leaves) if len(v) > 0 and d < max_depth]
+            depths_options = [d for d, v in enumerate(leaves_by_depth) if len(v) > 0 and d < max_depth]
 
             if len(depths_options) > 0:
                 
@@ -101,8 +101,8 @@ def gen_tree(
                 chosen_depth = random.choice(depths_options)
                 
                 # Choose a random leaf from the current depth
-                parent_id_index = random.randint(0, len(leaves[chosen_depth]) - 1)
-                parent_id = leaves[chosen_depth].pop(parent_id_index)
+                parent_id_index = random.randint(0, len(leaves_by_depth[chosen_depth]) - 1)
+                parent_id = leaves_by_depth[chosen_depth].pop(parent_id_index)
 
                 current_num_internals += 1
                 current_num_leaves -= 1
@@ -153,8 +153,8 @@ def gen_tree(
                         new_depth = depth_info[parent_info[current_node]] + 1
                         if current_node not in children_info:
                             # Update leaves
-                            leaves[old_depth].remove(current_node)
-                            leaves[new_depth].append(current_node)
+                            leaves_by_depth[old_depth].remove(current_node)
+                            leaves_by_depth[new_depth].append(current_node)
                         depth_info[current_node] = new_depth
                         queue += children_info[current_node]
                     continue
@@ -185,18 +185,18 @@ def gen_tree(
         if parent_id not in children_info:
             children_info[parent_id] = []
         
-        if chosen_depth + 1 >= len(leaves):
-            leaves.append([])
+        if chosen_depth + 1 >= len(leaves_by_depth):
+            leaves_by_depth.append([])
 
         for _ in range(tba_degree):
             global_id_iterator += 1
-            leaves[chosen_depth + 1].append(global_id_iterator)
+            leaves_by_depth[chosen_depth + 1].append(global_id_iterator)
             parent_info[global_id_iterator] = parent_id
             depth_info[global_id_iterator] = chosen_depth + 1
             children_info[parent_id].append(global_id_iterator)
             current_num_leaves += 1
 
-    return depth_info, parent_info, children_info, leaves
+    return depth_info, parent_info, children_info, leaves_by_depth
 
 
 
@@ -233,3 +233,84 @@ def assign_node_type(
             node_type_info[node_id] = random.choice([NodeType.AND, NodeType.OR])
 
     return node_type_info
+
+
+def gen_tree_simple(
+        min_depth : int = 1, 
+        max_depth : int = 1000, 
+        min_degree : int = 2, 
+        max_degree : int = 1000,
+        min_leaf_depth: int = 0,
+        eps: float = 0.1,
+    ):
+    """
+    Generates a random tree with the given minimum depth, maximum depth, maximum and minimum depth (number of children possible per internal (non-leaf) node)
+
+    If you need exact depth, set min_depth = max_depth = exact depth.
+
+    If you need exact degree, set min_degree = max_degree = exact degree.
+
+    eps is the probability of continuing the tree generation process after the minimum depth and minimum leaf depth conditions are satisfied.
+    """
+
+    depth_info : dict[int, int] = {}
+    parent_info : dict[int, int] = {}
+    children_info : dict[int, list[int]] = {}
+    
+    global_id_iterator = 0
+    root_id = global_id_iterator
+    children_info[root_id] = []
+    depth_info[root_id] = 0
+    
+    leaves_by_depth : list[list[int]] = [[root_id]] # depth -> list of leaves of that depth
+
+    must_continue = True
+
+
+    while must_continue:
+
+        shallow_leaves = {d: l for d, l in enumerate(leaves_by_depth) if len(l) > 0 and d < min_leaf_depth}
+        
+        if len(shallow_leaves) > 0:
+            chosen_depth = random.choice(list(shallow_leaves.keys()))
+
+        elif len(leaves_by_depth) - 1 < min_depth:
+            chosen_depth = len(leaves_by_depth) - 1
+
+        else:
+            # Choose a random depth for the parent (the leaf to add children to)
+            depths_options = [d for d, v in enumerate(leaves_by_depth) if len(v) > 0 and d < max_depth]
+
+            if len(depths_options) > 0:
+                
+                # Choose a random depth for the parent (the leaf to add children to)
+                chosen_depth = random.choice(depths_options)
+
+                must_continue = random.random() < eps
+
+            else:
+                break
+
+        # Choose a random leaf from the current depth as the parent
+        parent_id_index = random.randint(0, len(leaves_by_depth[chosen_depth]) - 1)
+        parent_id = leaves_by_depth[chosen_depth].pop(parent_id_index)
+        
+        # Choose a random value for the to-be-added degree of the parent
+        tba_degree = random.randint(min_degree, max_degree)
+
+        if parent_id not in children_info:
+            children_info[parent_id] = []
+        
+        if chosen_depth + 1 >= len(leaves_by_depth):
+            leaves_by_depth.append([])
+
+        for _ in range(tba_degree):
+            global_id_iterator += 1
+            leaves_by_depth[chosen_depth + 1].append(global_id_iterator)
+            parent_info[global_id_iterator] = parent_id
+            depth_info[global_id_iterator] = chosen_depth + 1
+            children_info[parent_id].append(global_id_iterator)
+
+    return depth_info, parent_info, children_info, leaves_by_depth
+
+
