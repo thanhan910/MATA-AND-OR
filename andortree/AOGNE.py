@@ -1,6 +1,8 @@
 from .node_type import NodeType
 from .GreedyNE import aGreedyNE_subset
 from .upper_bound import upper_bound_subsytem
+from .tree_utils import AO_star
+from .rewards import task_reward, sys_rewards_tasks
 
 
 def get_leaves(root_id: int, children_info: dict[int, list[int]]):
@@ -55,6 +57,15 @@ def AOGreedyNE(
 
     if coalition_structure is None or coalition_structure == []:
         coalition_structure = [[] for j in range(0, task_num)] + [list(range(0, agent_num))]  # default coalition structure, the last one is dummy coalition
+
+    reward_function = {
+        j: task_reward(tasks[j], [agents[i] for i in coalition_structure[j]], gamma)
+        for j in range(0, task_num)
+    }
+
+    system_reward, current_tasks_solution = AO_star(children_info, node_type_info, reward_function, parent_info)
+
+    coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE_subset(agents=agents, tasks=tasks, constraints=constraints, coalition_structure=coalition_structure, selected_tasks=current_tasks_solution, eps=eps, gamma=gamma)
     
     visited = {}
     # expanded = []
