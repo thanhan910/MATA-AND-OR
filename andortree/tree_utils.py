@@ -132,3 +132,35 @@ def traverse_and_or_tree(node_type_info: dict, children_info: dict, depth_info: 
     # return list(traverse_helper(root_node_id)), skipped_nodes
 
 
+def AO_star(node_id: int, children_info: dict[int, list[int]], node_type_info: dict[int, NodeType], reward_function : dict[int, float]):
+    """
+    Performs AO* search on a tree with the given root node id.
+    """
+    node_type = node_type_info[node_id]
+    
+    if node_type == NodeType.LEAF:
+        return reward_function[node_id], [node_id]
+
+    if node_type == NodeType.AND:
+        total_reward = 0
+    else: # OR node
+        total_reward = float('-inf')
+
+    best_solution = []
+
+    for child_id in children_info[node_id]:
+
+        child_reward, child_solution = AO_star(child_id, children_info, node_type_info, reward_function)
+
+        if node_type == NodeType.AND:
+            # child_reward, child_solution = AO_star(child_id, children_info, node_type_info, reward_function)
+            total_reward += child_reward
+            best_solution += child_solution
+
+        elif child_reward > total_reward:
+            # child_reward, child_solution = AO_star(child_id, children_info, node_type_info, reward_function)
+            total_reward = child_reward
+            best_solution = child_solution
+
+    # return total_reward, [node_id] + best_solution
+    return total_reward, best_solution
