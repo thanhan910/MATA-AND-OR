@@ -12,7 +12,7 @@ from heterogeneous.solutions import *
 from heterogeneous.upper_bound import *
 
 from andortree.tree_gen import gen_tree, assign_node_type
-from andortree.tree_utils import get_leaves_list, get_nodes_constraints
+from andortree.tree_utils import get_leaves_list_info, get_nodes_constraints
 from andortree.upper_bound import upperbound_node_all, upperbound_node_all_min, upperbound_node, calculate_ubc_vectors, get_cap_vector_all
 # from andortree.GreedyNE import *
 from andortree.solutions import random_solution_and_or_tree
@@ -161,7 +161,7 @@ def main():
 
             node_type_info = assign_node_type(depth_info, children_info, leaf_nodes)
 
-            leaves_list_info = get_leaves_list(parent_info=parent_info, leaf_nodes=leaf_nodes)
+            leaves_list_info = get_leaves_list_info(parent_info=parent_info, leaf_nodes=leaf_nodes)
 
             nodes_constraints = get_nodes_constraints(node_type_info=node_type_info, leaves_list_info=leaves_list_info, leaf2task=leaf2task, constraints=constraints)
 

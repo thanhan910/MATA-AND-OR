@@ -2,7 +2,7 @@ import itertools
 from .node_type import NodeType
 
 
-def get_leaves_list(parent_info : dict[int, int], leaf_nodes : list[int]):
+def get_leaves_list_info(parent_info : dict[int, int], leaf_nodes : list[int]):
     """
     For each node in the tree, get the list of leaves that are descendants of that node.
 
@@ -132,36 +132,96 @@ def traverse_and_or_tree(node_type_info: dict, children_info: dict, depth_info: 
 
     # return list(traverse_helper(root_node_id)), skipped_nodes
 
+def get_leaves(root_id: int, children_info: dict[int, list[int]]):
+    leaves = []
+    stack = [root_id]
+    while len(stack) > 0:
+        current_node = stack.pop()
+        if current_node not in children_info or len(children_info[current_node]) == 0:
+            leaves.append(current_node)
+        else:
+            stack += children_info[current_node]
+    return leaves
 
-def AO_star(node_id: int, children_info: dict[int, list[int]], node_type_info: dict[int, NodeType], reward_function : dict[int, float]):
+
+def update_leaves_info(updated_node, leaves_info, children_info, parent_info, node_type_info):
     """
-    Performs AO* search on a tree with the given root node id.
+    updated_node: the node that has just been updated in leaves_info
     """
-    node_type = node_type_info[node_id]
+    current_node = updated_node
+    while current_node != 0:
+        parent_node = parent_info[current_node]
+        if node_type_info[parent_node] == NodeType.AND:
+            leaves_info[parent_node] = sum([leaves_info[child_id] for child_id in children_info[parent_node]], [])
+        else:
+            leaves_info[parent_node] = leaves_info[children_info[parent_node][0]].copy()
+        current_node = parent_node
+
+    return leaves_info
+
+
+def AO_star(
+    children_info: dict[int, list[int]], 
+    node_type_info: dict[int, NodeType], 
+    reward_function: dict[int, float],
+    parent_info: dict[int, int] = None,
+):
     
-    if node_type == NodeType.LEAF:
-        return reward_function[node_id], [node_id]
+    visited = {}
+    # expanded = []
+    solution_path_children_info : dict[int, list[int]] = {}
+    solution_path_leaves_info : dict[int, list[int]] = {}
 
-    if node_type == NodeType.AND:
-        total_reward = 0
-    else: # OR node
-        total_reward = float('-inf')
+    def AOS_helper(node_id: int):
 
-    best_solution = []
+        if node_id not in visited:
+            visited[node_id] = True
+            solution_path_children_info[node_id] = []
+            solution_path_leaves_info[node_id] = []
 
-    for child_id in children_info[node_id]:
+        node_type = node_type_info[node_id]
+        
+        if node_type == NodeType.LEAF:
+            # expanded.append(node_id)
+            solution_path_leaves_info[node_id] = [node_id]
+            # Update solution_path_leaves_info for all ancestors
+            update_leaves_info(node_id, solution_path_leaves_info, solution_path_children_info, parent_info, node_type_info)
+            return reward_function[node_id], [node_id]
 
-        child_reward, child_solution = AO_star(child_id, children_info, node_type_info, reward_function)
+        total_reward = 0 if node_type == NodeType.AND else float('-inf')
+
+        best_solution = []
 
         if node_type == NodeType.AND:
-            # child_reward, child_solution = AO_star(child_id, children_info, node_type_info, reward_function)
-            total_reward += child_reward
-            best_solution += child_solution
 
-        elif child_reward > total_reward:
-            # child_reward, child_solution = AO_star(child_id, children_info, node_type_info, reward_function)
-            total_reward = child_reward
-            best_solution = child_solution
+            for child_id in children_info[node_id]:
 
-    # return total_reward, [node_id] + best_solution
-    return total_reward, best_solution
+                solution_path_children_info[node_id].append(child_id)
+                # solution_path_leaves_info[node_id].append(child_id)
+                # update_leaves_info(node_id, solution_path_leaves_info, solution_path_children_info, parent_info, node_type_info)
+                
+                child_reward, child_solution = AOS_helper(child_id)
+
+                total_reward += child_reward
+                best_solution += child_solution
+                
+        else:
+            for child_id in children_info[node_id]:
+
+                if solution_path_children_info[node_id] == []:
+                    solution_path_children_info[node_id] = [child_id]
+                
+                child_reward, child_solution = AOS_helper(child_id)
+
+                if child_reward > total_reward:
+                    solution_path_children_info[node_id] = [child_id]
+                    total_reward = child_reward
+                    best_solution = child_solution
+                    solution_path_leaves_info[node_id] = child_solution
+                    # Update solution_path_leaves_info for all ancestors
+                    update_leaves_info(node_id, solution_path_leaves_info, solution_path_children_info, parent_info, node_type_info)
+                    
+        # expanded.append(node_id)
+        return total_reward, best_solution
+    
+    return AOS_helper(0)
