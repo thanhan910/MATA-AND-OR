@@ -161,11 +161,11 @@ def update_leaves_info(updated_node, leaves_info, children_info, parent_info, no
 
 
 def AO_star(
-    children_info: dict[int, list[int]], 
-    node_type_info: dict[int, NodeType], 
-    reward_function: dict[int, float],
-    parent_info: dict[int, int] = None,
-):
+        children_info: dict[int, list[int]], 
+        node_type_info: dict[int, NodeType], 
+        reward_function: dict[int, float],
+        parent_info: dict[int, int] = None,
+    ):
     
     visited = {}
     # expanded = []
