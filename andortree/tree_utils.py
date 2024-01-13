@@ -112,7 +112,7 @@ def traverse_and_or_tree(node_type_info: dict, children_info: dict, depth_info: 
                 else:
                     # for item in leaves_subsets[index]:
                     for item in traverse_helper(children_info[node_id][index]):
-                        stack.append((combination + [item], index + 1))
+                        stack.append((combination + item, index + 1))
 
         
         # For OR nodes, simply yield from each child
