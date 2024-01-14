@@ -112,9 +112,9 @@ def AO_star(
                 child_reward, child_solution = AOS_helper(child_id)
 
                 if child_reward > total_reward:
-                    solution_path_children_info[node_id] = [child_id]
                     total_reward = child_reward
                     best_solution = child_solution
+                    solution_path_children_info[node_id] = [child_id]
                     solution_path_leaves_info[node_id] = child_solution
                     # Update solution_path_leaves_info for all ancestors
                     update_leaves_info(node_id, solution_path_leaves_info, solution_path_children_info, parent_info, node_type_info)
@@ -126,6 +126,19 @@ def AO_star(
     
     return total_reward, best_leafs_solution, solution_path_children_info, solution_path_leaves_info
 
+
+def simplify_tree_info(children_info : dict[int, list[int]], leaves_info : dict[int, list[int]] = {}, root_node_id: int=0):
+    new_children_info = {}
+    new_leaves_info = {}
+    stack = [0]
+    while len(stack) > 0:
+        current_node = stack.pop()
+        if current_node in children_info and len(children_info[current_node]) > 0:
+            new_children_info[current_node] = children_info[current_node].copy()
+        if current_node in leaves_info and len(leaves_info[current_node]) > 0:
+            new_leaves_info[current_node] = leaves_info[current_node].copy()
+        stack += children_info[current_node]
+    return new_children_info, new_leaves_info
 
 
 def AOGreedyNE(
@@ -157,11 +170,18 @@ def AOGreedyNE(
         for j in range(0, task_num)
     }
 
-    system_reward, current_tasks_solution, solution_path_leaves_info, solution_path_children_info = AO_star(node_type_info, children_info, parent_info, tasks_reward_info)
+    system_reward, current_tasks_solution, solution_path_children_info, solution_path_leaves_info = AO_star(node_type_info, children_info, parent_info, tasks_reward_info)
 
     coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE_subset(agents=agents, tasks=tasks, constraints=constraints, coalition_structure=coalition_structure, selected_tasks=current_tasks_solution, eps=eps, gamma=gamma)
     
-    visited = {}
-    # expanded = []
-    solution_path_children_info : dict[int, list[int]] = {}
-    solution_path_leaves_info : dict[int, list[int]] = {}
+    # Get all OR nodes in solution_path_children_info, starting from the root node
+    or_nodes = [root_node_id]
+    stack = [root_node_id]
+    while len(stack) > 0:
+        current_node = stack.pop()
+        if current_node not in children_info or len(children_info[current_node]) == 0:
+            continue
+        else:
+            if node_type_info[current_node] == NodeType.OR:
+                or_nodes.append(current_node)
+            stack += children_info[current_node]
