@@ -1,7 +1,6 @@
 from .node_type import NodeType
 from .GreedyNE import aGreedyNE_subset
 from .upper_bound import upper_bound_subsytem
-from .tree_utils import AO_star
 from .rewards import task_reward, sys_rewards_tasks
 
 
@@ -34,38 +33,37 @@ def update_leaves_info(updated_node, leaves_info, children_info, parent_info, no
 
 
 
-def AOGreedyNE(
+def update_leaves_info(
+        updated_node : int, 
+        leaves_info : dict[int, list[int]],
+        children_info : dict[int, list[int]],
+        parent_info : dict[int, int],
+        node_type_info : dict[int, NodeType]
+    ):
+    """
+    Update the leaves_info for all ancestors of the updated_node.
+
+    updated_node: the node that has just been updated in leaves_info
+    """
+    current_node = updated_node
+    while current_node != 0:
+        parent_node = parent_info[current_node]
+        if node_type_info[parent_node] == NodeType.AND:
+            leaves_info[parent_node] = sum([leaves_info[child_id] for child_id in children_info[parent_node]], [])
+        else:
+            leaves_info[parent_node] = leaves_info[children_info[parent_node][0]].copy()
+        current_node = parent_node
+
+    return leaves_info
+
+
+def AO_star(
         node_type_info: dict[int, NodeType], 
         children_info: dict[int, list[int]], 
         parent_info: dict[int, int],
-        nodes_upper_bound: dict[int, float],
-        nodes_upper_bound_min: dict[int, float],
-        leaf2task: dict[int, int],
-        capabilities: list[int],
-        tasks: list[list[int]],
-        agents: list[dict[int, float]],
-        constraints,
-        coalition_structure : list[list[int]] = [],
-        eps=0, 
-        gamma=1,
+        reward_function: dict[int, float],
         root_node_id=0,
-        # reward_function: dict[int, float],
     ):
-
-    agent_num = len(agents)
-    task_num = len(tasks)
-
-    if coalition_structure is None or coalition_structure == []:
-        coalition_structure = [[] for j in range(0, task_num)] + [list(range(0, agent_num))]  # default coalition structure, the last one is dummy coalition
-
-    reward_function = {
-        j: task_reward(tasks[j], [agents[i] for i in coalition_structure[j]], gamma)
-        for j in range(0, task_num)
-    }
-
-    system_reward, current_tasks_solution = AO_star(children_info, node_type_info, reward_function, parent_info)
-
-    coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE_subset(agents=agents, tasks=tasks, constraints=constraints, coalition_structure=coalition_structure, selected_tasks=current_tasks_solution, eps=eps, gamma=gamma)
     
     visited = {}
     # expanded = []
@@ -80,29 +78,26 @@ def AOGreedyNE(
             solution_path_leaves_info[node_id] = []
 
         node_type = node_type_info[node_id]
-
-        best_solution = []
-        
-        total_reward = 0 if node_type == NodeType.AND else float('-inf')
         
         if node_type == NodeType.LEAF:
             # expanded.append(node_id)
             solution_path_leaves_info[node_id] = [node_id]
             # Update solution_path_leaves_info for all ancestors
             update_leaves_info(node_id, solution_path_leaves_info, solution_path_children_info, parent_info, node_type_info)
+            return reward_function[node_id], [node_id]
 
-            current_tasks_solution = solution_path_leaves_info[root_node_id]
+        total_reward = 0 if node_type == NodeType.AND else float('-inf')
 
-            best_solution = [node_id]
+        best_solution = []
 
-            # total_reward = rewards[node_id]
-
-        elif node_type == NodeType.AND:
+        if node_type == NodeType.AND:
 
             for child_id in children_info[node_id]:
 
                 solution_path_children_info[node_id].append(child_id)
-
+                # solution_path_leaves_info[node_id].append(child_id)
+                # update_leaves_info(node_id, solution_path_leaves_info, solution_path_children_info, parent_info, node_type_info)
+                
                 child_reward, child_solution = AOS_helper(child_id)
 
                 total_reward += child_reward
@@ -127,4 +122,46 @@ def AOGreedyNE(
         # expanded.append(node_id)
         return total_reward, best_solution
     
-    return AOS_helper(0)
+    total_reward, best_leafs_solution = AOS_helper(root_node_id)
+    
+    return total_reward, best_leafs_solution, solution_path_children_info, solution_path_leaves_info
+
+
+
+def AOGreedyNE(
+        node_type_info: dict[int, NodeType], 
+        children_info: dict[int, list[int]], 
+        parent_info: dict[int, int],
+        nodes_upper_bound: dict[int, float],
+        nodes_upper_bound_min: dict[int, float],
+        leaf2task: dict[int, int],
+        capabilities: list[int],
+        tasks: list[list[int]],
+        agents: list[dict[int, float]],
+        constraints,
+        coalition_structure : list[list[int]] = [],
+        eps=0, 
+        gamma=1,
+        root_node_id=0,
+        # reward_function: dict[int, float],
+    ):
+
+    agent_num = len(agents)
+    task_num = len(tasks)
+
+    if coalition_structure is None or coalition_structure == []:
+        coalition_structure = [[] for j in range(0, task_num)] + [list(range(0, agent_num))]  # default coalition structure, the last one is dummy coalition
+
+    tasks_reward_info = {
+        j: task_reward(tasks[j], [agents[i] for i in coalition_structure[j]], gamma)
+        for j in range(0, task_num)
+    }
+
+    system_reward, current_tasks_solution, solution_path_leaves_info, solution_path_children_info = AO_star(node_type_info, children_info, parent_info, tasks_reward_info)
+
+    coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE_subset(agents=agents, tasks=tasks, constraints=constraints, coalition_structure=coalition_structure, selected_tasks=current_tasks_solution, eps=eps, gamma=gamma)
+    
+    visited = {}
+    # expanded = []
+    solution_path_children_info : dict[int, list[int]] = {}
+    solution_path_leaves_info : dict[int, list[int]] = {}
