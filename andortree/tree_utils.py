@@ -144,8 +144,16 @@ def get_leaves(root_id: int, children_info: dict[int, list[int]]):
     return leaves
 
 
-def update_leaves_info(updated_node, leaves_info, children_info, parent_info, node_type_info):
+def update_leaves_info(
+        updated_node : int, 
+        leaves_info : dict[int, list[int]],
+        children_info : dict[int, list[int]],
+        parent_info : dict[int, int],
+        node_type_info : dict[int, NodeType]
+    ):
     """
+    Update the leaves_info for all ancestors of the updated_node.
+
     updated_node: the node that has just been updated in leaves_info
     """
     current_node = updated_node
@@ -161,10 +169,11 @@ def update_leaves_info(updated_node, leaves_info, children_info, parent_info, no
 
 
 def AO_star(
-        children_info: dict[int, list[int]], 
         node_type_info: dict[int, NodeType], 
+        children_info: dict[int, list[int]], 
+        parent_info: dict[int, int],
         reward_function: dict[int, float],
-        parent_info: dict[int, int] = None,
+        root_node_id=0,
     ):
     
     visited = {}
@@ -224,4 +233,6 @@ def AO_star(
         # expanded.append(node_id)
         return total_reward, best_solution
     
-    return AOS_helper(0)
+    total_reward, best_leafs_solution = AOS_helper(root_node_id)
+    
+    return total_reward, best_leafs_solution, solution_path_children_info, solution_path_leaves_info
