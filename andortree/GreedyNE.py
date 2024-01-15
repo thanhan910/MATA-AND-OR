@@ -248,7 +248,7 @@ def aGreedyNE(
 
         for j in range(0, task_num):
             if not task_selected[j]:
-                coalition_structure[len(task_num)] += coalition_structure[j]
+                coalition_structure[task_num] += coalition_structure[j]
                 coalition_structure[j] = []
 
         for j in range(0, task_num):
@@ -257,7 +257,7 @@ def aGreedyNE(
 
         cur_con = [
             agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma)
-            if task_selected[j]
+            if j != task_num and task_selected[j]
             else 0
             for i, j in enumerate(allocation_structure)
         ]
@@ -275,7 +275,7 @@ def aGreedyNE(
 
     move_vals = [
         [
-            task_cons[i][j] - cur_con[i] if j in a_taskInds[i] + [task_num] and task_selected[j] else float("-inf")
+            task_cons[i][j] - cur_con[i] if (j in a_taskInds[i] and task_selected[j]) or j == task_num else float("-inf")
             for j in range(0, task_num + 1)
         ]
         for i in range(0, agent_num)
@@ -344,7 +344,7 @@ def aGreedyNE(
         for i in affected_a_indexes:
             move_vals[i] = [
                 task_cons[i][j] - cur_con[i]
-                if j in a_taskInds[i] + [task_num] and task_selected[j]
+                if (j in a_taskInds[i] and task_selected[j]) or j == task_num
                 else float("-inf")
                 for j in range(0, task_num + 1)
             ]
