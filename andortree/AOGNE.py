@@ -253,19 +253,24 @@ def AOsearchGNE(
             
             current_tasks = [leaf2task[n_id] for n_id in get_leaves(root_node_id, st_children_info) if node_type_info[n_id] == NodeType.LEAF]
             
-            n_coalition_structure, n_system_reward, _, _ = aGreedyNE(agents=agents, tasks=tasks, constraints=constraints, coalition_structure=best_coalition_structure, selected_tasks=current_tasks, eps=eps, gamma=gamma)
+            n_coalition_structure, n_system_reward, n_iteration_count, n_re_assignment_count = aGreedyNE(agents=agents, tasks=tasks, constraints=constraints, coalition_structure=best_coalition_structure, selected_tasks=current_tasks, eps=eps, gamma=gamma)
             
             if n_system_reward > best_sys_reward:
                 best_sys_reward = n_system_reward
                 best_coalition_structure = n_coalition_structure
             
-            return n_coalition_structure, n_system_reward
+            return best_coalition_structure, best_sys_reward, n_iteration_count, n_re_assignment_count
+        
+        t_iteration_count, t_re_assignment_count = 0, 0
 
         if node_type == NodeType.AND:
 
             for child_id in children_info[node_id]:
 
-                child_coalition_structure, child_reward = aos_helper(child_id, best_coalition_structure=best_coalition_structure, best_sys_reward=best_sys_reward)
+                child_coalition_structure, child_reward, c_iteration_count, c_reassignment_count = aos_helper(child_id, best_coalition_structure=best_coalition_structure, best_sys_reward=best_sys_reward)
+
+                t_iteration_count += c_iteration_count
+                t_re_assignment_count += c_reassignment_count
 
                 if child_reward > best_sys_reward:
                     best_sys_reward = child_reward
@@ -297,7 +302,10 @@ def AOsearchGNE(
 
                 st_children_info[node_id] = [current_child]
                 
-                child_coalition_structure, child_reward = aos_helper(child_id, best_coalition_structure=best_coalition_structure, best_sys_reward=best_sys_reward)
+                child_coalition_structure, child_reward, c_iteration_count, c_reassignment_count = aos_helper(child_id, best_coalition_structure=best_coalition_structure, best_sys_reward=best_sys_reward)
+
+                t_iteration_count += c_iteration_count
+                t_re_assignment_count += c_reassignment_count
 
                 if child_reward > best_sys_reward:
                     best_sys_reward = child_reward
@@ -306,8 +314,23 @@ def AOsearchGNE(
 
                     
         # expanded.append(node_id)
-        return best_coalition_structure, best_sys_reward
+        return best_coalition_structure, best_sys_reward, t_iteration_count, t_re_assignment_count
     
-    best_coalition_structure, best_sys_reward = aos_helper(root_node_id, best_coalition_structure=coalition_structure, best_sys_reward=0)
+    best_coalition_structure, best_sys_reward = coalition_structure, sys_rewards_tasks(tasks, agents, coalition_structure, gamma)
 
-    return best_coalition_structure, best_sys_reward, st_children_info
+    loop_count = 0
+    total_iteration_count = 0
+    total_re_assignment_count = 0
+
+    while True:
+        loop_count += 1
+        new_coalition_structure, new_sys_reward, new_iter_count, new_re_assignment_count = aos_helper(root_node_id, best_coalition_structure=best_coalition_structure, best_sys_reward=best_sys_reward)
+        total_iteration_count += new_iter_count
+        total_re_assignment_count += new_re_assignment_count
+        if new_sys_reward > best_sys_reward:
+            best_coalition_structure = new_coalition_structure
+            best_sys_reward = new_sys_reward
+        else:
+            break
+
+    return best_coalition_structure, best_sys_reward, total_iteration_count, total_re_assignment_count, loop_count

@@ -144,7 +144,7 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
 
 
     start = time.perf_counter()
-    raos_coalition_structure, raos_sys_reward, _ = AOsearchGNE(
+    raos_coalition_structure, raos_sys_reward, raos_iteration_count, raos_re_assignment_count, raos_loop_count = AOsearchGNE(
         node_type_info=node_type_info,
         children_info=children_info,
         parent_info=parent_info,
@@ -159,7 +159,7 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         root_node_id=0,
     )
     end = time.perf_counter()
-    print(f"AOsearchGNE: {raos_sys_reward}\ttime: {end - start}")
+    print(f"AOsearchGNE: {raos_sys_reward}\ttime: {end - start}\titeration: {raos_iteration_count}\tre-assignment {raos_re_assignment_count}\tloop: {raos_loop_count}")
 
 
     # start = time.perf_counter()
