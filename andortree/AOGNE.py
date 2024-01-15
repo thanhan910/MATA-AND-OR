@@ -57,7 +57,7 @@ def update_leaves_info(
     return leaves_info
 
 
-def AO_star(
+def ao_search(
         node_type_info: dict[int, NodeType], 
         children_info: dict[int, list[int]], 
         parent_info: dict[int, int],
@@ -70,7 +70,7 @@ def AO_star(
     solution_path_children_info : dict[int, list[int]] = {}
     solution_path_leaves_info : dict[int, list[int]] = {}
 
-    def AOS_helper(node_id: int):
+    def aos_helper(node_id: int):
 
         if node_id not in visited:
             visited[node_id] = True
@@ -98,7 +98,7 @@ def AO_star(
                 # solution_path_leaves_info[node_id].append(child_id)
                 # update_leaves_info(node_id, solution_path_leaves_info, solution_path_children_info, parent_info, node_type_info)
                 
-                child_reward, child_solution = AOS_helper(child_id)
+                child_reward, child_solution = aos_helper(child_id)
 
                 total_reward += child_reward
                 best_solution += child_solution
@@ -109,7 +109,7 @@ def AO_star(
                 if solution_path_children_info[node_id] == []:
                     solution_path_children_info[node_id] = [child_id]
                 
-                child_reward, child_solution = AOS_helper(child_id)
+                child_reward, child_solution = aos_helper(child_id)
 
                 if child_reward > total_reward:
                     total_reward = child_reward
@@ -122,7 +122,7 @@ def AO_star(
         # expanded.append(node_id)
         return total_reward, best_solution
     
-    total_reward, best_leafs_solution = AOS_helper(root_node_id)
+    total_reward, best_leafs_solution = aos_helper(root_node_id)
     
     return total_reward, best_leafs_solution, solution_path_children_info, solution_path_leaves_info
 
@@ -170,7 +170,7 @@ def AOGreedyNE(
         for j in range(0, task_num)
     }
 
-    system_reward, current_tasks_solution, solution_path_children_info, solution_path_leaves_info = AO_star(node_type_info, children_info, parent_info, tasks_reward_info)
+    system_reward, current_tasks_solution, solution_path_children_info, solution_path_leaves_info = ao_search(node_type_info, children_info, parent_info, tasks_reward_info)
 
     coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE(agents=agents, tasks=tasks, constraints=constraints, coalition_structure=coalition_structure, selected_tasks=current_tasks_solution, eps=eps, gamma=gamma)
     

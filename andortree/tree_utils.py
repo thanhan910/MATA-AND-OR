@@ -181,7 +181,7 @@ def ao_search(
     solution_path_children_info : dict[int, list[int]] = {}
     solution_path_leaves_info : dict[int, list[int]] = {}
 
-    def AOS_helper(node_id: int):
+    def aos_helper(node_id: int):
 
         if node_id not in visited:
             visited[node_id] = True
@@ -209,7 +209,7 @@ def ao_search(
                 # solution_path_leaves_info[node_id].append(child_id)
                 # update_leaves_info(node_id, solution_path_leaves_info, solution_path_children_info, parent_info, node_type_info)
                 
-                child_reward, child_solution = AOS_helper(child_id)
+                child_reward, child_solution = aos_helper(child_id)
 
                 total_reward += child_reward
                 best_solution += child_solution
@@ -220,7 +220,7 @@ def ao_search(
                 if solution_path_children_info[node_id] == []:
                     solution_path_children_info[node_id] = [child_id]
                 
-                child_reward, child_solution = AOS_helper(child_id)
+                child_reward, child_solution = aos_helper(child_id)
 
                 if child_reward > total_reward:
                     solution_path_children_info[node_id] = [child_id]
@@ -233,6 +233,6 @@ def ao_search(
         # expanded.append(node_id)
         return total_reward, best_solution
     
-    total_reward, best_leafs_solution = AOS_helper(root_node_id)
+    total_reward, best_leafs_solution = aos_helper(root_node_id)
     
     return total_reward, best_leafs_solution, solution_path_children_info, solution_path_leaves_info
