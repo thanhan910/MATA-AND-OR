@@ -760,9 +760,9 @@ def fastTreeGNE2(
         iteration_count += 1
         if best_improvement_value < 0:
             break
-        elif best_improvement_value == 0 and best_move_move_val <= 0:
+        elif best_improvement_value == 0 and best_move_move_val < 0:
             break
-        
+
         a_index, t_index = best_move_agent, best_move_task            
 
         # perfom move
