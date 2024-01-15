@@ -31,6 +31,9 @@ def eGreedyNE(
         eps=0, 
         gamma=1
     ):
+    """
+    The original GreedyNE algorithm implementation
+    """
     re_assignment_count = 0
     a_taskInds = constraints[0]
     agent_num = len(agents)
@@ -174,7 +177,7 @@ def eGreedyNE_subset(
         gamma=1
     ):
     """
-    Perform GreeyNE on a subset of tasks.
+    The original GreedyNE algorithm implementation, but performed on a subset of tasks.
     """
     if current_coalition_structure is None or current_coalition_structure == []:
         current_coalition_structure = [[] for j in range(0, len(tasks))] + [list(range(0, len(agents)))]
@@ -206,15 +209,19 @@ def eGreedyNE_subset(
     return new_coalition_structure, system_reward, iteration_count, re_assignment_count
 
 
-def aGreedyNE_subset(
+def aGreedyNE(
         agents : list[list[float]], 
         tasks : list[list[int]],
         constraints : tuple[list[list[int]], list[list[int]]],
         coalition_structure : list[list[int]] = [],
         selected_tasks : list[int] = None,
+        selected_agents : list[int] = None,
         eps=0, 
         gamma=1
     ):
+    """
+    GreedyNE for a subset of tasks.
+    """
     re_assignment_count = 0
     a_taskInds = constraints[0]
     agent_num = len(agents)
@@ -246,6 +253,7 @@ def aGreedyNE_subset(
         for j in range(0, task_num):
             for i in coalition_structure[j]:
                 allocation_structure[i] = j
+                
         cur_con = [
             agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma)
             for i, j in enumerate(allocation_structure)

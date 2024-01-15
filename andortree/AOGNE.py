@@ -1,5 +1,5 @@
 from .node_type import NodeType
-from .GreedyNE import aGreedyNE_subset
+from .GreedyNE import aGreedyNE
 from .upper_bound import upper_bound_subsytem
 from .rewards import task_reward, sys_rewards_tasks
 
@@ -172,7 +172,7 @@ def AOGreedyNE(
 
     system_reward, current_tasks_solution, solution_path_children_info, solution_path_leaves_info = AO_star(node_type_info, children_info, parent_info, tasks_reward_info)
 
-    coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE_subset(agents=agents, tasks=tasks, constraints=constraints, coalition_structure=coalition_structure, selected_tasks=current_tasks_solution, eps=eps, gamma=gamma)
+    coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE(agents=agents, tasks=tasks, constraints=constraints, coalition_structure=coalition_structure, selected_tasks=current_tasks_solution, eps=eps, gamma=gamma)
     
     # Get all OR nodes in solution_path_children_info, starting from the root node
     or_nodes = [root_node_id]
