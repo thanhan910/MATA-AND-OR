@@ -16,6 +16,7 @@ from andortree.tree_utils import get_leaves_list_info, get_nodes_constraints
 from andortree.upper_bound import upperbound_node_all, upperbound_node_all_min, upperbound_node, calculate_ubc_vectors, get_cap_vector_all
 # from andortree.GreedyNE import *
 from andortree.solutions import random_solution_and_or_tree
+from andortree.treeGNE import treeGNE, treeGNE2, treeGNE_extra
 
 
 
@@ -73,105 +74,80 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
 
     print("UP2:", nodes_upper_bound_min[0], "\ttime:", end - start)
 
-    # start = time.perf_counter()
-    # r_tree_solver = GreedyNE(agents, tasks, constraints, tree_info=tree_info, gamma=gamma)
-    # result_c = r_tree_solver.solve()
-    # end = time.perf_counter()
-    # print(
-    #     "GreedyNE Class:",
-    #     "\ttime:",
-    #     end - start,
-    #     "\tresult:",
-    #     result_c[1],
-    #     "\titeration:",
-    #     result_c[2],
-    #     "\tre-assignment",
-    #     result_c[3],
-    # )
-
-    # start = time.perf_counter()
-    # r_tree_0 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=0)
-    # end = time.perf_counter()
-    # print(
-    #     "GreedyNE 0:",
-    #     "\ttime:",
-    #     end - start,
-    #     "\tresult:",
-    #     r_tree_0[1],
-    #     "\titeration:",
-    #     r_tree_0[2],
-    #     "\tre-assignment",
-    #     r_tree_0[3],
-    # )
-
-    # start = time.perf_counter()
-    # r_tree_1 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=1)
-    # end = time.perf_counter()
-    # print(
-    #     "GreedyNE 1:",
-    #     "\ttime:",
-    #     end - start,
-    #     "\tresult:",
-    #     r_tree_1[1],
-    #     "\titeration:",
-    #     r_tree_1[2],
-    #     "\tre-assignment",
-    #     r_tree_1[3],
-    # )
-    # start = time.perf_counter()
-    # r_tree_2 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=2)
-    # end = time.perf_counter()
-    # print(
-    #     "GreedyNE 2:",
-    #     "\ttime:",
-    #     end - start,
-    #     "\tresult:",
-    #     r_tree_2[1],
-    #     "\titeration:",
-    #     r_tree_2[2],
-    #     "\tre-assignment",
-    #     r_tree_2[3],
-    # )
-    # start = time.perf_counter()
-    # r_tree_0 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=0, eps=1)
-    # end = time.perf_counter()
-    # print(
-    #     "GreedyNE 0, eps=1:",
-    #     "\ttime:",
-    #     end - start,
-    #     "\tresult:",
-    #     r_tree_0[1],
-    #     "\titeration:",
-    #     r_tree_0[2],
-    #     "\tre-assignment",
-    #     r_tree_0[3],
-    # )
-
-    # start = time.perf_counter()
-    # r_tree_1 = greedyNETree(agents, tasks, constraints, tree_info=tree_info, gamma=gamma, greedy_level=1, eps=1)
-    # end = time.perf_counter()
-    # print(
-    #     "GreedyNE 1, eps=1:",
-    #     "\ttime:",
-    #     end - start,
-    #     "\tresult:",
-    #     r_tree_1[1],
-    #     "\titeration:",
-    #     r_tree_1[2],
-    #     "\tre-assignment",
-    #     r_tree_1[3],
-    # )
     start = time.perf_counter()
-    rand_sol_a, rand_sol_reward = random_solution_and_or_tree( node_type_info, children_info, leaf2task, tasks, agents, constraints, gamma)
+    rand_sol_alloc, rand_sol_reward = random_solution_and_or_tree(node_type_info, children_info, leaf2task, tasks, agents, constraints, gamma)
     end = time.perf_counter()
-    print(
-        "Random Solution:",
-        "\ttime:",
-        end - start,
-        "\tresult:",
-        rand_sol_reward,
-    )
+    print(f"Random: {rand_sol_reward}\ttime: {end - start}")
 
+    start = time.perf_counter()
+    result_c = treeGNE(
+        node_type_info=node_type_info,
+        children_info=children_info,
+        parent_info=parent_info,
+        task2leaf=leaf_nodes,
+        leaf2task=leaf2task,
+        tasks=tasks,
+        agents=agents,
+        constraints=constraints,
+        gamma=gamma,
+    )
+    end = time.perf_counter()
+    print(f"TreeGNE: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
+
+    start = time.perf_counter()
+    result_c = treeGNE2(
+        node_type_info=node_type_info,
+        children_info=children_info,
+        parent_info=parent_info,
+        task2leaf=leaf_nodes,
+        leaf2task=leaf2task,
+        tasks=tasks,
+        agents=agents,
+        constraints=constraints,
+        gamma=gamma,
+    )
+    end = time.perf_counter()
+    print(f"TreeGNE2: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
+
+
+
+
+def main_original_opd_fms(tasks, agents, constraints, gamma, t_max_edge, result, time_bound):
+    """
+    Original driver code for algorithms related to OPD and FMS.
+    """
+
+    if t_max_edge < 15:
+        start = time.perf_counter()
+        opd = OPD(agents, tasks, constraints, gamma)
+        new_con = opd[0:2]
+        result["OPD_t"] = time.perf_counter() - start
+        r = FMS(agents, tasks, new_con, gamma=gamma, time_bound=time_bound)
+        end = time.perf_counter()
+        result["OPD_pruned"] = opd[2]
+        print(
+            "OPD time used:",
+            result["OPD_t"],
+            " Edge pruned:",
+            result["OPD_pruned"],
+        )
+        result["BnBFMS"] = r[1]
+        result["BnBFMS_iter"] = r[2]
+        result["BnBFMS_t"] = end - start
+        result["BnBFMS_converge"] = r[4]
+        print(
+            "BnB FMS time:",
+            result["BnBFMS_t"],
+            "result:",
+            result["BnBFMS"],
+            "iteration:",
+            result["BnBFMS_iter"],
+            "converge?",
+            result["BnBFMS_converge"],
+        )
+    print()
+
+    return t_max_edge, result, time_bound
 
 
 def main():
@@ -191,8 +167,14 @@ def main():
     capabilities = list(range(0, capNum))
 
     for run in range(0, run_num):
+        print("-----------------------------------")
+        print("ITERATION:", run)
+        print("-----------------------------------")
         t_max_edge = 3
         while t_max_edge <= 50:
+            print("-----------------------------------")
+            print("t_max_edge:", t_max_edge)
+            print("-----------------------------------")
             ex_identifier += 1
 
             #         agent_num = np.random.randint(task_num,3*task_num)
@@ -285,13 +267,7 @@ def main():
             start = time.perf_counter()
             rand_sol_a, rand_sol_reward = random_solution_heterogeneous(agents, tasks, constraints, gamma=gamma)
             end = time.perf_counter()
-            print(
-                "Random Solution:",
-                "\ttime:",
-                end - start,
-                "\tresult:",
-                rand_sol_reward,
-            )
+            print("Random Solution:", "\ttime:", end - start, "\tresult:", rand_sol_reward)
 
             print("-----------------------------------")
             print("AND-OR Tree Tasks")
@@ -300,39 +276,11 @@ def main():
             main_tree(capabilities, tasks, agents, constraints, gamma)
 
 
-            print("-----------------------------------")
-            print("Heterogeneous Tasks (OPD, FMS)")
-            print("-----------------------------------")
+            # print("-----------------------------------")
+            # print("Heterogeneous Tasks (OPD, FMS)")
+            # print("-----------------------------------")
 
-            if t_max_edge < 15:
-                start = time.perf_counter()
-                opd = OPD(agents, tasks, constraints, gamma)
-                new_con = opd[0:2]
-                result["OPD_t"] = time.perf_counter() - start
-                r = FMS(agents, tasks, new_con, gamma=gamma, time_bound=time_bound)
-                end = time.perf_counter()
-                result["OPD_pruned"] = opd[2]
-                print(
-                    "OPD time used:",
-                    result["OPD_t"],
-                    " Edge pruned:",
-                    result["OPD_pruned"],
-                )
-                result["BnBFMS"] = r[1]
-                result["BnBFMS_iter"] = r[2]
-                result["BnBFMS_t"] = end - start
-                result["BnBFMS_converge"] = r[4]
-                print(
-                    "BnB FMS time:",
-                    result["BnBFMS_t"],
-                    "result:",
-                    result["BnBFMS"],
-                    "iteration:",
-                    result["BnBFMS_iter"],
-                    "converge?",
-                    result["BnBFMS_converge"],
-                )
-            print()
+            # t_max_edge, result, time_bound = main_original_opd_fms(tasks, agents, constraints, gamma, t_max_edge, result, time_bound)
 
             # # append data and result
             # files = {"density100_result_cap": [result, ""]}
