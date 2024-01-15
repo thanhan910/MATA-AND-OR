@@ -370,6 +370,7 @@ def treeGNE(
         re_assignment_count,
     )
 
+
 def treeGNE2(
         node_type_info: dict[int, NodeType], 
         children_info: dict[int, list[int]], 

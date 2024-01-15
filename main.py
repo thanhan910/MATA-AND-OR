@@ -16,7 +16,8 @@ from andortree.tree_utils import get_leaves_list_info, get_nodes_constraints
 from andortree.upper_bound import upperbound_node_all, upperbound_node_all_min, upperbound_node, calculate_ubc_vectors, get_cap_vector_all
 # from andortree.GreedyNE import *
 from andortree.solutions import random_solution_and_or_tree
-from andortree.treeGNE import treeGNE, treeGNE2, treeGNE_extra
+from andortree.treeGNE import treeGNE, treeGNE2
+from andortree.naiveGNE import naiveGNE
 
 
 
@@ -108,6 +109,20 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     )
     end = time.perf_counter()
     print(f"TreeGNE2: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
+
+
+    start = time.perf_counter()
+    r_coalition_structure, r_sys_reward, r_iteration_count_1, r_re_assignment_count_1, r_iteration_count_2, r_re_assignment_count_2, r_loop_count = naiveGNE(
+        node_type_info=node_type_info,
+        children_info=children_info,
+        leaf2task=leaf2task,
+        agents=agents,
+        tasks=tasks,
+        constraints=constraints,
+        gamma=gamma,
+    )
+    end = time.perf_counter()
+    print(f"naiveGNE: {r_sys_reward}\ttime: {end - start}\titeration 1: {r_iteration_count_1}\tre-assignment 1 {r_re_assignment_count_1}\titeration 2: {r_iteration_count_2}\tre-assignment 2 {r_re_assignment_count_2}\tloop: {r_loop_count}")
 
 
 
