@@ -16,7 +16,7 @@ from andortree.tree_utils import get_leaves_list_info, get_nodes_constraints
 from andortree.upper_bound import upperbound_node_all, upperbound_node_all_min, upperbound_node, calculate_ubc_vectors, get_cap_vector_all
 # from andortree.GreedyNE import *
 from andortree.solutions import random_solution_and_or_tree
-from andortree.treeGNE import treeGNE, treeGNE2
+from andortree.treeGNE import treeGNE, treeGNE2, fastTreeGNE2
 from andortree.naiveGNE import naiveGNE
 from andortree.dnfGNE import dnfGNE
 
@@ -110,6 +110,22 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     )
     end = time.perf_counter()
     print(f"TreeGNE2: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
+
+
+    start = time.perf_counter()
+    result_c = fastTreeGNE2(
+        node_type_info=node_type_info,
+        children_info=children_info,
+        parent_info=parent_info,
+        task2leaf=leaf_nodes,
+        leaf2task=leaf2task,
+        tasks=tasks,
+        agents=agents,
+        constraints=constraints,
+        gamma=gamma,
+    )
+    end = time.perf_counter()
+    print(f"fastTreeGNE2: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
 
 
     start = time.perf_counter()

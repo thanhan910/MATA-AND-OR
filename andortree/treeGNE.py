@@ -93,7 +93,7 @@ def get_move_val_tree(
         node_value_info: dict[int, float],
         task_cons_info: list[list[float]],
         root_node_id=0,
-        sys_improvement_value_benchmark=0,
+        value_added_benchmark=0,
     ):
 
     nodes_alt_value = {}
@@ -104,7 +104,7 @@ def get_move_val_tree(
     
     nodes_alt_value[current_node] = deflect_nodes_alt_value.get(current_node, node_value_info[current_node]) + value_added
     
-    while current_node != root_node_id and value_added > 0 and value_added >= sys_improvement_value_benchmark:
+    while current_node != root_node_id and value_added > 0 and value_added >= value_added_benchmark:
         parent_node = parent_info[current_node]
         current_parent_value = deflect_nodes_alt_value.get(parent_node, node_value_info[parent_node])
         if node_type_info[parent_node] == NodeType.AND:
@@ -499,11 +499,6 @@ def treeGNE2(
         for i in range(agent_num)
     }
 
-    max_sys_improvement_values = {
-        i: max(sys_improvement_values_info[i].items(), key=lambda x: x[1])
-        for i in range(agent_num)
-    }
-
 
     iteration_count = 0
     while True:
@@ -514,7 +509,7 @@ def treeGNE2(
                     (sys_improvement_values_info[i][j] > 0) or (sys_improvement_values_info[i][j] == 0 and move_vals[i][j] > 0)
                 )
             ]
-            for i in range(0, agent_num) if max_sys_improvement_values[i][1] >= 0
+            for i in range(0, agent_num)
         }
         feasible_choices = [(i, j) for i in feasible_choices_map for j in feasible_choices_map[i]]
         if len(feasible_choices) == 0:
@@ -630,10 +625,6 @@ def treeGNE2(
             for i in range(agent_num)
         }
 
-        max_sys_improvement_values = {
-            i: max(sys_improvement_values_info[i].items(), key=lambda x: x[1])
-            for i in range(agent_num)
-        }
 
 
     return (
@@ -642,6 +633,238 @@ def treeGNE2(
         iteration_count,
         re_assignment_count,
     )
+
+
+def fastTreeGNE2(
+        node_type_info: dict[int, NodeType], 
+        children_info: dict[int, list[int]], 
+        parent_info: dict[int, int],
+        task2leaf: list[int],
+        leaf2task: dict[int, int],
+        tasks: list[list[int]],
+        agents: list[dict[int, float]],
+        constraints,
+        coalition_structure : list[list[int]] = [],
+        selected_tasks : list[int] = None,
+        gamma=1,
+        root_node_id=0,
+    ):
+    
+    """
+    GreedyNE on an AND-OR tree.
+
+    At each iteration, calculate the change in nodes values when an agent defects from its current task, and the change in nodes values when an agent moves to a new task.
+
+    Quickly and greedily find the best move by benchmarking (bounding) the added value for each node.
+    """
+    re_assignment_count = 0
+    a_taskInds = constraints[0]
+    agent_num = len(agents)
+    task_num = len(tasks)
+
+    if selected_tasks is None:
+        selected_tasks = list(range(len(tasks)))
+        task_selected = [True for i in range(len(tasks))]
+
+    else:    
+        task_selected = [False for i in range(len(tasks))]
+        for j in selected_tasks:
+            task_selected[j] = True
+
+    allocation_structure = [task_num for i in range(0, agent_num)]  # each indicate the current task that agent i is allocated to, if = N, means not allocated
+    if coalition_structure is None or coalition_structure == []:
+        coalition_structure = [[] for j in range(0, task_num)] + [list(range(0, agent_num))]  # default coalition structure, the last one is dummy coalition
+        cur_con = [0 for j in range(0, agent_num)]
+    else:
+
+        if len(coalition_structure) < task_num:
+            coalition_structure.append([])
+
+        for j in range(0, task_num):
+            if not task_selected[j]:
+                coalition_structure[len(task_num)] += coalition_structure[j]
+                coalition_structure[j] = []
+
+        for j in range(0, task_num):
+            for n_id in coalition_structure[j]:
+                allocation_structure[n_id] = j
+
+        cur_con = [
+            agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma)
+            if j != task_num and task_selected[j]
+            else 0
+            for i, j in enumerate(allocation_structure)
+        ]
+
+    task_cons = [
+        [
+            agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma)
+            if j in a_taskInds[i] and task_selected[j]
+            else float("-inf")
+            for j in range(0, task_num)
+        ] + [0]
+        for i in range(0, agent_num)
+    ]
+
+    move_vals = {
+        i : {
+            j : task_cons[i][j] - cur_con[i]
+            for j in a_taskInds[i] if task_selected[j]
+        }
+        for i in range(agent_num)
+    }
+
+
+    node_value_info = get_node_value_info(node_type_info, children_info, leaf2task, coalition_structure, root_node_id)
+
+    info_get_cur_con = {
+        i: get_cur_con_tree(i, node_type_info, children_info, parent_info, task2leaf, allocation_structure, node_value_info, cur_con, root_node_id)
+        for i in range(agent_num)
+    }
+
+    deflect_nodes_alt_value_info = {
+        i: info_get_cur_con[i][0]
+        for i in range(agent_num)
+    }
+
+    value_lost_info = {
+        i: info_get_cur_con[i][1]
+        for i in range(agent_num)
+    }
+
+    added_nodes_alt_value_info = {
+        i: { }
+        for i in range(agent_num)
+    }
+
+
+    best_move_agent, best_move_task = 0, 0
+    best_improvement_value = float("-inf")
+    best_move_move_val = float("-inf")
+    for i in range(agent_num):
+        best_added_value = best_improvement_value + value_lost_info[i]
+        for j in a_taskInds[i]:
+            if not task_selected[j]:
+                continue
+            added_nodes_alt_values, value_added = get_move_val_tree(i, j, deflect_nodes_alt_value_info[i], node_type_info, parent_info, task2leaf, node_value_info, task_cons, root_node_id, value_added_benchmark=best_added_value)
+            move_val = move_vals[i][j]
+            if value_added > best_added_value or (value_added == best_added_value and move_val >= best_move_move_val):
+                added_nodes_alt_value_info[i][j] = added_nodes_alt_values
+                best_added_value = value_added
+                best_improvement_value = value_added - value_lost_info[i]
+                best_move_agent, best_move_task = i, j
+
+
+    iteration_count = 0
+    while True:
+        iteration_count += 1
+        if best_improvement_value < 0:
+            break
+        elif best_improvement_value == 0 and best_move_move_val <= 0:
+            break
+        
+        a_index, t_index = best_move_agent, best_move_task            
+
+        # perfom move
+        old_t_index = allocation_structure[a_index]
+        allocation_structure[a_index] = t_index
+        coalition_structure[t_index].append(a_index)
+
+        # update agents in the new coalition
+        affected_a_indexes = []
+        affected_t_indexes = []
+        if t_index != task_num:
+            affected_a_indexes.extend(coalition_structure[t_index])
+            affected_t_indexes.append(t_index)
+
+            # task_cons[i][t_index]
+            for n_id in coalition_structure[t_index]:
+                task_cons[n_id][t_index] = agent_contribution(agents, tasks, n_id, t_index, coalition_structure[t_index], constraints, gamma)
+                cur_con[n_id] = task_cons[n_id][t_index]
+        else:
+            affected_a_indexes.append(a_index)
+            task_cons[a_index][t_index] = 0
+            cur_con[a_index] = 0
+
+        # update agent in the old coalition (if applicable)
+        if (old_t_index != task_num):  
+            # if agents indeed moved from another task, we have to change every agent from the old as well
+            re_assignment_count += 1
+            coalition_structure[old_t_index].remove(a_index)
+            affected_a_indexes.extend(coalition_structure[old_t_index])
+            affected_t_indexes.append(old_t_index)
+            for i in coalition_structure[old_t_index]:
+                task_cons[i][old_t_index] = agent_contribution(agents, tasks, i, old_t_index, coalition_structure[old_t_index], constraints, gamma)
+                cur_con[i] = task_cons[i][old_t_index]
+
+        for i in affected_a_indexes:
+            move_vals[i] = [
+                task_cons[i][j] - cur_con[i]
+                if (j in a_taskInds[i] and task_selected[j]) or j == task_num
+                else float("-inf")
+                for j in range(0, task_num + 1)
+            ]
+
+        ## update other agents w.r.t the affected tasks
+        for t_ind in affected_t_indexes:
+            for i in range(0, agent_num):
+                if (i not in coalition_structure[t_ind]) and (t_ind in a_taskInds[i]):
+                    task_cons[i][t_ind] = agent_contribution(agents, tasks, i, t_ind, coalition_structure[t_ind], constraints, gamma)
+                    move_vals[i][t_ind] = task_cons[i][t_ind] - cur_con[i]
+
+        # update node values
+        for n_id, n_value in deflect_nodes_alt_value_info[a_index].items():
+            node_value_info[n_id] = n_value
+
+        for n_id, n_value in added_nodes_alt_value_info[a_index][t_index].items():
+            node_value_info[n_id] = n_value
+
+
+        info_get_cur_con = {
+            i: get_cur_con_tree(i, node_type_info, children_info, parent_info, task2leaf, allocation_structure, node_value_info, cur_con)
+            for i in range(agent_num)
+        }
+
+        deflect_nodes_alt_value_info = {
+            i: info_get_cur_con[i][0]
+            for i in range(agent_num)
+        }
+
+        value_lost_info = {
+            i: info_get_cur_con[i][1]
+            for i in range(agent_num)
+        }
+
+        added_nodes_alt_value_info = {
+            i: { }
+            for i in range(agent_num)
+        }
+
+        best_move_agent, best_move_task = 0, 0
+        best_improvement_value = float("-inf")
+        best_move_move_val = float("-inf")
+        for i in range(agent_num):
+            best_added_value = best_improvement_value + value_lost_info[i]
+            for j in a_taskInds[i]:
+                if not task_selected[j]:
+                    continue
+                added_nodes_alt_values, value_added = get_move_val_tree(i, j, deflect_nodes_alt_value_info[i], node_type_info, parent_info, task2leaf, node_value_info, task_cons, root_node_id, value_added_benchmark=best_added_value)
+                move_val = move_vals[i][j]
+                if value_added > best_added_value or (value_added == best_added_value and move_val >= best_move_move_val):
+                    added_nodes_alt_value_info[i][j] = added_nodes_alt_values
+                    best_added_value = value_added
+                    best_improvement_value = value_added - value_lost_info[i]
+                    best_move_agent, best_move_task = i, j
+
+
+    return (
+        coalition_structure,
+        node_value_info,
+        iteration_count,
+        re_assignment_count,
+    )
+
+
 
 
 
