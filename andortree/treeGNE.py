@@ -748,19 +748,18 @@ def fastTreeGNE2(
                 continue
             added_nodes_alt_values, value_added = get_move_val_tree(i, j, deflect_nodes_alt_value_info[i], node_type_info, parent_info, task2leaf, node_value_info, task_cons, root_node_id, value_added_benchmark=best_added_value)
             move_val = move_vals[i][j]
-            if value_added > best_added_value or (value_added == best_added_value and move_val >= best_move_move_val):
+            if value_added > best_added_value or (value_added == best_added_value and move_val > best_move_move_val):
                 added_nodes_alt_value_info[i][j] = added_nodes_alt_values
                 best_added_value = value_added
                 best_improvement_value = value_added - value_lost_info[i]
+                best_move_move_val = move_val
                 best_move_agent, best_move_task = i, j
 
 
     iteration_count = 0
     while True:
         iteration_count += 1
-        if best_improvement_value < 0:
-            break
-        elif best_improvement_value == 0 and best_move_move_val < 0:
+        if not ((best_improvement_value > 0) or (best_improvement_value == 0 and best_move_move_val > 0)):
             break
 
         a_index, t_index = best_move_agent, best_move_task            
@@ -850,10 +849,11 @@ def fastTreeGNE2(
                     continue
                 added_nodes_alt_values, value_added = get_move_val_tree(i, j, deflect_nodes_alt_value_info[i], node_type_info, parent_info, task2leaf, node_value_info, task_cons, root_node_id, value_added_benchmark=best_added_value)
                 move_val = move_vals[i][j]
-                if value_added > best_added_value or (value_added == best_added_value and move_val >= best_move_move_val):
+                if value_added > best_added_value or (value_added == best_added_value and move_val > best_move_move_val):
                     added_nodes_alt_value_info[i][j] = added_nodes_alt_values
                     best_added_value = value_added
                     best_improvement_value = value_added - value_lost_info[i]
+                    best_move_move_val = move_val
                     best_move_agent, best_move_task = i, j
 
 

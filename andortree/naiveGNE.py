@@ -67,11 +67,9 @@ def naiveGNE(
     iteration_count_2 = 0
     re_assignment_count_2 = 0
     total_loop_count = 0
-    while true_sys_reward > prev_sys_reward:
+    while True:
 
         total_loop_count += 1
-        
-        prev_sys_reward = true_sys_reward
 
         coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE(agents, tasks, constraints, coalition_structure, selected_tasks, eps, gamma)
 
@@ -91,6 +89,11 @@ def naiveGNE(
 
         iteration_count_2 += iteration_count
         re_assignment_count_2 += re_assignment_count
+
+        if true_sys_reward <= prev_sys_reward:
+            break
+
+        prev_sys_reward = true_sys_reward
 
     return (
         coalition_structure,
