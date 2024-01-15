@@ -168,7 +168,7 @@ def update_leaves_info(
     return leaves_info
 
 
-def AO_star(
+def ao_search(
         node_type_info: dict[int, NodeType], 
         children_info: dict[int, list[int]], 
         parent_info: dict[int, int],
