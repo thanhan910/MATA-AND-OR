@@ -215,12 +215,13 @@ def aGreedyNE(
         constraints : tuple[list[list[int]], list[list[int]]],
         coalition_structure : list[list[int]] = [],
         selected_tasks : list[int] = None,
-        selected_agents : list[int] = None,
         eps=0, 
         gamma=1
     ):
     """
-    GreedyNE for a subset of tasks.
+    GreedyNE on a subset of tasks.
+
+    The target is to focus all agents on working on only the selected tasks.
     """
     re_assignment_count = 0
     a_taskInds = constraints[0]
@@ -253,9 +254,11 @@ def aGreedyNE(
         for j in range(0, task_num):
             for i in coalition_structure[j]:
                 allocation_structure[i] = j
-                
+
         cur_con = [
             agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma)
+            if task_selected[j]
+            else 0
             for i, j in enumerate(allocation_structure)
         ]
 
