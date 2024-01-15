@@ -127,6 +127,81 @@ def ao_search(
     return total_reward, best_leafs_solution, solution_path_children_info, solution_path_leaves_info
 
 
+def get_leaves(root_id: int, children_info: dict[int, list[int]]):
+    leaves = []
+    stack = [root_id]
+    while len(stack) > 0:
+        current_node = stack.pop()
+        if current_node not in children_info or len(children_info[current_node]) == 0:
+            leaves.append(current_node)
+        else:
+            stack += children_info[current_node]
+    return leaves
+
+
+
+def aos_tree(
+        node_type_info: dict[int, NodeType], 
+        children_info: dict[int, list[int]], 
+        parent_info: dict[int, int],
+        reward_function: dict[int, float],
+        root_node_id=0,
+    ):
+    
+    visited = {}
+    # expanded = []
+    st_children_info : dict[int, list[int]] = {
+        node_id: [] if node_type_info[node_id] == NodeType.OR else children_list
+        for node_id, children_list in children_info.items()
+    }
+
+    def aos_helper(node_id: int):
+
+        if node_id not in visited:
+            visited[node_id] = True            
+
+        node_type = node_type_info[node_id]
+        
+        if node_type == NodeType.LEAF:
+            return reward_function[node_id], [node_id]
+
+        total_reward = 0 if node_type == NodeType.AND else float('-inf')
+
+        best_solution = []
+
+        if node_type == NodeType.AND:
+
+            for child_id in children_info[node_id]:
+
+                child_reward, child_solution = aos_helper(child_id)
+
+                total_reward += child_reward
+                best_solution += child_solution
+                
+        else:
+            for child_id in children_info[node_id]:
+
+                if st_children_info[node_id] == []:
+                    st_children_info[node_id] = [child_id]
+                
+                child_reward, child_solution = aos_helper(child_id)
+
+                if child_reward > total_reward:
+                    total_reward = child_reward
+                    best_solution = child_solution
+                    st_children_info[node_id] = [child_id]
+
+                    
+        # expanded.append(node_id)
+        return total_reward, best_solution
+    
+    total_reward, best_leafs_solution = aos_helper(root_node_id)
+    
+    return total_reward, best_leafs_solution, st_children_info
+
+
+
+
 def simplify_tree_info(children_info : dict[int, list[int]], leaves_info : dict[int, list[int]] = {}, root_node_id: int=0):
     new_children_info = {}
     new_leaves_info = {}
@@ -141,7 +216,7 @@ def simplify_tree_info(children_info : dict[int, list[int]], leaves_info : dict[
     return new_children_info, new_leaves_info
 
 
-def AOGreedyNE(
+def AOsearchGNE(
         node_type_info: dict[int, NodeType], 
         children_info: dict[int, list[int]], 
         parent_info: dict[int, int],
@@ -165,23 +240,74 @@ def AOGreedyNE(
     if coalition_structure is None or coalition_structure == []:
         coalition_structure = [[] for j in range(0, task_num)] + [list(range(0, agent_num))]  # default coalition structure, the last one is dummy coalition
 
-    tasks_reward_info = {
-        j: task_reward(tasks[j], [agents[i] for i in coalition_structure[j]], gamma)
-        for j in range(0, task_num)
+    st_children_info : dict[int, list[int]] = {
+        node_id: [] if node_type_info[node_id] == NodeType.OR else children_list
+        for node_id, children_list in children_info.items()
     }
 
-    system_reward, current_tasks_solution, solution_path_children_info, solution_path_leaves_info = ao_search(node_type_info, children_info, parent_info, tasks_reward_info)
+    def aos_helper(node_id: int, best_coalition_structure : list[list[int]], best_sys_reward : float):
 
-    coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE(agents=agents, tasks=tasks, constraints=constraints, coalition_structure=coalition_structure, selected_tasks=current_tasks_solution, eps=eps, gamma=gamma)
-    
-    # Get all OR nodes in solution_path_children_info, starting from the root node
-    or_nodes = [root_node_id]
-    stack = [root_node_id]
-    while len(stack) > 0:
-        current_node = stack.pop()
-        if current_node not in children_info or len(children_info[current_node]) == 0:
-            continue
+        node_type = node_type_info[node_id]
+        
+        if node_type == NodeType.LEAF:
+            
+            current_tasks = [leaf2task[n_id] for n_id in get_leaves(root_node_id, st_children_info) if node_type_info[n_id] == NodeType.LEAF]
+            
+            n_coalition_structure, n_system_reward, _, _ = aGreedyNE(agents=agents, tasks=tasks, constraints=constraints, coalition_structure=best_coalition_structure, selected_tasks=current_tasks, eps=eps, gamma=gamma)
+            
+            if n_system_reward > best_sys_reward:
+                best_sys_reward = n_system_reward
+                best_coalition_structure = n_coalition_structure
+            
+            return n_coalition_structure, n_system_reward
+
+        if node_type == NodeType.AND:
+
+            for child_id in children_info[node_id]:
+
+                child_coalition_structure, child_reward = aos_helper(child_id, best_coalition_structure=best_coalition_structure, best_sys_reward=best_sys_reward)
+
+                if child_reward > best_sys_reward:
+                    best_sys_reward = child_reward
+                    best_coalition_structure = child_coalition_structure
+                
         else:
-            if node_type_info[current_node] == NodeType.OR:
-                or_nodes.append(current_node)
-            stack += children_info[current_node]
+            for child_id in children_info[node_id]:
+
+                if st_children_info[node_id] == []:
+                    st_children_info[node_id] = [child_id]
+                    current_child = child_id
+                else:
+                    current_child = st_children_info[node_id][0]
+
+                st_children_info[node_id] = [child_id]
+                sys_reward_upper_bound = upper_bound_subsytem(
+                    selected_nodes=get_leaves(root_node_id, st_children_info),
+                    nodes_upper_bound=nodes_upper_bound,
+                    nodes_upper_bound_min=nodes_upper_bound_min,
+                    node_type_info=node_type_info,
+                    leaf2task=leaf2task,
+                    capabilities=capabilities,
+                    tasks=tasks,
+                    agents=agents,
+                    constraints=constraints,
+                )
+                if sys_reward_upper_bound <= best_sys_reward:
+                    continue
+
+                st_children_info[node_id] = [current_child]
+                
+                child_coalition_structure, child_reward = aos_helper(child_id, best_coalition_structure=best_coalition_structure, best_sys_reward=best_sys_reward)
+
+                if child_reward > best_sys_reward:
+                    best_sys_reward = child_reward
+                    best_coalition_structure = child_coalition_structure
+                    st_children_info[node_id] = [child_id]
+
+                    
+        # expanded.append(node_id)
+        return best_coalition_structure, best_sys_reward
+    
+    best_coalition_structure, best_sys_reward = aos_helper(root_node_id, best_coalition_structure=coalition_structure, best_sys_reward=0)
+
+    return best_coalition_structure, best_sys_reward, st_children_info

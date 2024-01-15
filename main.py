@@ -19,6 +19,7 @@ from andortree.solutions import random_solution_and_or_tree
 from andortree.treeGNE import treeGNE, treeGNE2, fastTreeGNE2
 from andortree.naiveGNE import naiveGNE
 from andortree.dnfGNE import dnfGNE
+from andortree.AOGNE import AOsearchGNE
 
 
 
@@ -140,6 +141,25 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     )
     end = time.perf_counter()
     print(f"naiveGNE: {r_sys_reward}\ttime: {end - start}\titeration 1: {r_iteration_count_1}\tre-assignment 1 {r_re_assignment_count_1}\titeration 2: {r_iteration_count_2}\tre-assignment 2 {r_re_assignment_count_2}\tloop: {r_loop_count}")
+
+
+    start = time.perf_counter()
+    raos_coalition_structure, raos_sys_reward, _ = AOsearchGNE(
+        node_type_info=node_type_info,
+        children_info=children_info,
+        parent_info=parent_info,
+        nodes_upper_bound=nodes_upper_bound,
+        nodes_upper_bound_min=nodes_upper_bound_min,
+        leaf2task=leaf2task,
+        capabilities=capabilities,
+        tasks=tasks,
+        agents=agents,
+        constraints=constraints,
+        gamma=gamma,
+        root_node_id=0,
+    )
+    end = time.perf_counter()
+    print(f"AOsearchGNE: {raos_sys_reward}\ttime: {end - start}")
 
 
     # start = time.perf_counter()
