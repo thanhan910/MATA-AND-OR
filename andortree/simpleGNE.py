@@ -2,7 +2,7 @@ from .node_type import NodeType
 from .rewards import task_reward, sys_rewards_tree_tasks
 from .GreedyNE import aGreedyNE
 
-def ao_tree(
+def ao_search(
         node_type_info: dict[int, NodeType], 
         children_info: dict[int, list[int]],
         reward_function: dict[int, float],
@@ -47,7 +47,7 @@ def ao_tree(
     return total_reward, best_leafs_solution
 
 
-def naiveGNE(
+def simpleGNE(
         node_type_info: dict[int, NodeType],
         children_info: dict[int, list[int]],
         leaf2task: dict[int, int],
@@ -81,7 +81,7 @@ def naiveGNE(
             for leaf_id in leaf2task
         }
         
-        true_sys_reward, best_leafs_solution = ao_tree(node_type_info, children_info, reward_function, root_node_id)
+        true_sys_reward, best_leafs_solution = ao_search(node_type_info, children_info, reward_function, root_node_id)
 
         new_selected_tasks = [leaf2task[leaf_id] for leaf_id in best_leafs_solution]
 

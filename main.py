@@ -17,7 +17,7 @@ from andortree.upper_bound import upperbound_node_all, upperbound_node_all_min, 
 # from andortree.GreedyNE import *
 from andortree.solutions import random_solution_and_or_tree
 from andortree.treeGNE import treeGNE, treeGNE2, fastTreeGNE2
-from andortree.naiveGNE import naiveGNE
+from andortree.simpleGNE import simpleGNE
 from andortree.dnfGNE import dnfGNE
 from andortree.AOGNE import AOsearchGNE
 
@@ -130,7 +130,7 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
 
 
     start = time.perf_counter()
-    r_coalition_structure, r_sys_reward, r_iteration_count_1, r_re_assignment_count_1, r_iteration_count_2, r_re_assignment_count_2, r_loop_count = naiveGNE(
+    r_coalition_structure, r_sys_reward, r_iteration_count_1, r_re_assignment_count_1, r_iteration_count_2, r_re_assignment_count_2, r_loop_count = simpleGNE(
         node_type_info=node_type_info,
         children_info=children_info,
         leaf2task=leaf2task,
@@ -140,7 +140,7 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         gamma=gamma,
     )
     end = time.perf_counter()
-    print(f"naiveGNE: {r_sys_reward}\ttime: {end - start}\titeration 1: {r_iteration_count_1}\tre-assignment 1 {r_re_assignment_count_1}\titeration 2: {r_iteration_count_2}\tre-assignment 2 {r_re_assignment_count_2}\tloop: {r_loop_count}")
+    print(f"simpleGNE: {r_sys_reward}\ttime: {end - start}\titeration 1: {r_iteration_count_1}\tre-assignment 1 {r_re_assignment_count_1}\titeration 2: {r_iteration_count_2}\tre-assignment 2 {r_re_assignment_count_2}\tloop: {r_loop_count}")
 
 
     start = time.perf_counter()
