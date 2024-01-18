@@ -36,9 +36,9 @@ def calculate_ubc_vectors(
         query_nodeId : int
     ):
     """
-    For each descendant of 'query_nodeId', generates a "ubc vector", a vector of values.
+    For each descendant of 'query_nodeId', generate a "ubc vector", a vector of values.
 
-    Each value in the vector represents each capability and the upper bound of the number of agents that needed to perform that capability under that node. "ubc" stands for "upper bound capability".
+    Each value in the vector represents each capability and the maximum number of agents' capacity values needed to perform that capability under that node (i.e. subtree, i.e. branch). "ubc" stands for "upper bound capability".
     """
     if node_type_info[query_nodeId] == NodeType.LEAF:
         return {query_nodeId : tasks_capVecs[leaf2task[query_nodeId]]}
