@@ -39,7 +39,11 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     Driver code for algorithms related to AND-OR goal tree.
     """
 
+    result_row = {}
+
     task_num = len(tasks)
+
+    result_row["task_num"] = task_num
 
     depth_info, parent_info, children_info, leaves_by_depth = gen_tree(task_num, min_leaf_depth=2)
     
@@ -75,11 +79,19 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     nodes_upper_bound_min = upperbound_node_all_min(nodes_upper_bound, node_type_info, children_info, query_nodeId=0)
     end = time.perf_counter()
 
+    result_row["upper_bound"] = nodes_upper_bound_min[0]
+
     print("UP2:", nodes_upper_bound_min[0], "\ttime:", end - start)
 
     start = time.perf_counter()
     rand_sol_alloc, rand_sol_reward = random_solution_and_or_tree(node_type_info, children_info, leaf2task, tasks, agents, constraints, gamma)
     end = time.perf_counter()
+
+    result_row["random_solution"] = {
+        "reward": rand_sol_reward,
+        "time": end - start,
+    }
+
     print(f"Random: {rand_sol_reward}\ttime: {end - start}")
 
     start = time.perf_counter()
@@ -95,6 +107,15 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         gamma=gamma,
     )
     end = time.perf_counter()
+
+    result_row["treeGNE"] = {
+        "reward": result_c[1][0],
+        "time": end - start,
+        "iteration": result_c[2],
+        "re-assignment": result_c[3],
+    }
+
+
     print(f"TreeGNE: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
 
     start = time.perf_counter()
@@ -110,6 +131,14 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         gamma=gamma,
     )
     end = time.perf_counter()
+
+    result_row["treeGNE2"] = {
+        "reward": result_c[1][0],
+        "time": end - start,
+        "iteration": result_c[2],
+        "re-assignment": result_c[3],
+    }
+
     print(f"TreeGNE2: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
 
 
@@ -126,6 +155,14 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         gamma=gamma,
     )
     end = time.perf_counter()
+
+    result_row["fastTreeGNE2"] = {
+        "reward": result_c[1][0],
+        "time": end - start,
+        "iteration": result_c[2],
+        "re-assignment": result_c[3],
+    }
+
     print(f"fastTreeGNE2: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
 
 
@@ -140,6 +177,17 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         gamma=gamma,
     )
     end = time.perf_counter()
+
+    result_row["simpleGNE"] = {
+        "reward": r_sys_reward,
+        "time": end - start,
+        "iteration_1": r_iteration_count_1,
+        "re-assignment_1": r_re_assignment_count_1,
+        "iteration_2": r_iteration_count_2,
+        "re-assignment_2": r_re_assignment_count_2,
+        "loop": r_loop_count,
+    }
+
     print(f"simpleGNE: {r_sys_reward}\ttime: {end - start}\titeration 1: {r_iteration_count_1}\tre-assignment 1 {r_re_assignment_count_1}\titeration 2: {r_iteration_count_2}\tre-assignment 2 {r_re_assignment_count_2}\tloop: {r_loop_count}")
 
 
@@ -159,6 +207,15 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         root_node_id=0,
     )
     end = time.perf_counter()
+
+    result_row["AOsearchGNE"] = {
+        "reward": raos_sys_reward,
+        "time": end - start,
+        "iteration": raos_iteration_count,
+        "re-assignment": raos_re_assignment_count,
+        "loop": raos_loop_count,
+    }
+
     print(f"AOsearchGNE: {raos_sys_reward}\ttime: {end - start}\titeration: {raos_iteration_count}\tre-assignment {raos_re_assignment_count}\tloop: {raos_loop_count}")
 
 
@@ -177,6 +234,8 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     # )
     # end = time.perf_counter()
     # print(f"dnfGNE: {rdnf_system_reward}\ttime: {end - start}\tassessment: {rdnf_total_assessment_count}\titeration: {rdnf_iteration_count}\tre-assignment {rdnf_re_assignment_count}")
+
+    return result_row
 
 
 
@@ -344,7 +403,14 @@ def main():
             print("AND-OR Tree Tasks")
             print("-----------------------------------")
 
-            main_tree(capabilities, tasks, agents, constraints, gamma)
+            result_row = main_tree(capabilities, tasks, agents, constraints, gamma)
+
+            # append data and result
+            files = {"local-results.jsonl": [result_row, ""]}
+
+
+            for filename in list(files.keys()):
+                append_record(files[filename][0], filename, typ=files[filename][1])
 
 
             # print("-----------------------------------")
