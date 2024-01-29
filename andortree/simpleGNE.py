@@ -71,7 +71,15 @@ def simpleGNE(
 
         total_loop_count += 1
 
-        coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE(agents, tasks, constraints, coalition_structure, selected_tasks, eps, gamma)
+        coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE(
+            agents=agents,
+            tasks=tasks,
+            constraints=constraints,
+            coalition_structure=coalition_structure,
+            selected_tasks=selected_tasks,
+            eps=eps,
+            gamma=gamma
+        )
 
         iteration_count_1 += iteration_count
         re_assignment_count_1 += re_assignment_count
@@ -85,7 +93,15 @@ def simpleGNE(
 
         new_selected_tasks = [leaf2task[leaf_id] for leaf_id in best_leafs_solution]
 
-        coalition_structure, true_sys_reward, iteration_count, re_assignment_count = aGreedyNE(agents, tasks, constraints, coalition_structure, new_selected_tasks, eps, gamma)
+        coalition_structure, true_sys_reward, iteration_count, re_assignment_count = aGreedyNE(
+            agents=agents,
+            tasks=tasks,
+            constraints=constraints,
+            coalition_structure=coalition_structure,
+            selected_tasks=new_selected_tasks,
+            eps=eps,
+            gamma=gamma
+        )
 
         iteration_count_2 += iteration_count
         re_assignment_count_2 += re_assignment_count

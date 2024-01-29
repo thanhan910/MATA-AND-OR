@@ -215,6 +215,7 @@ def aGreedyNE(
         constraints : tuple[list[list[int]], list[list[int]]],
         coalition_structure : list[list[int]] = [],
         selected_tasks : list[int] = None,
+        selected_agents : list[int] = None,
         eps=0, 
         gamma=1
     ):
@@ -230,17 +231,32 @@ def aGreedyNE(
 
     if selected_tasks is None:
         selected_tasks = list(range(len(tasks)))
-        task_selected = [True for i in range(len(tasks))]
+        task_selected = [True for j in range(len(tasks))]
 
     else:    
-        task_selected = [False for i in range(len(tasks))]
+        task_selected = [False for j in range(len(tasks))]
         for j in selected_tasks:
             task_selected[j] = True
 
-    allocation_structure = [task_num for i in range(0, agent_num)]  # each indicate the current task that agent i is allocated to, if = N, means not allocated
+    task_selected.append(True) # dummy task
+
+
+    if selected_agents is None:
+        selected_agents = list(range(0, agent_num))
+        agent_selected = [True for i in range(len(agents))]
+
+    else:
+        agent_selected = [False for i in range(len(agents))]
+        for i in selected_agents:
+            agent_selected[i] = True
+
+
+    allocation_structure = { i : task_num for i in selected_agents }
+    # each indicate the current task that agent i is allocated to, if = N, means not allocated
+    
     if coalition_structure is None or coalition_structure == []:
         coalition_structure = [[] for j in range(0, task_num)] + [list(range(0, agent_num))]  # default coalition structure, the last one is dummy coalition
-        cur_con = [0 for j in range(0, agent_num)]
+        cur_con = { i : 0 for i in selected_agents }
     else:
 
         if len(coalition_structure) < task_num:
@@ -255,59 +271,57 @@ def aGreedyNE(
             for i in coalition_structure[j]:
                 allocation_structure[i] = j
 
-        cur_con = [
-            agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma)
+        cur_con = {
+            i : agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma)
             if j != task_num and task_selected[j]
             else 0
-            for i, j in enumerate(allocation_structure)
-        ]
+            for i, j in allocation_structure.items()
+        }
+        
 
-    task_cons = [
-        [
-            agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma)
-            if j in a_taskInds[i] and task_selected[j]
+    task_cons = {
+        i : {
+            j : agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma)
+            if j != task_num and task_selected[j]
+            else 0 if j == task_num
             else float("-inf")
-            for j in range(0, task_num)
-        ] + [0]
-        for i in range(0, agent_num)
-    ]
+            for j in a_taskInds[i] + [task_num]
+        }
+        for i in selected_agents
+    }
     # the last 0 indicate not allocated
 
-    move_vals = [
-        [
-            task_cons[i][j] - cur_con[i] if (j in a_taskInds[i] and task_selected[j]) or j == task_num else float("-inf")
-            for j in range(0, task_num + 1)
-        ]
-        for i in range(0, agent_num)
-    ]
+    move_vals = {
+        i : {
+            j : task_cons[i][j] - cur_con[i] 
+            if j == task_num or task_selected[j]
+            else float("-inf")
+            for j in a_taskInds[i] + [task_num]
+        }
+        for i in selected_agents
+    }
 
-    max_moveIndexs = [
-        np.argmax([move_vals[i][j] for j in a_taskInds[i]] + [0])
-        for i in range(0, agent_num)
-    ]
-
-    max_moveVals = [
-        move_vals[i][a_taskInds[i][max_moveIndexs[i]]]
-        if max_moveIndexs[i] < len(a_taskInds[i])
-        else move_vals[i][task_num]
-        for i in range(0, agent_num)
-    ]
+    max_moves = {
+        i : max(move_vals[i].items(), key=lambda x: x[1])
+        for i in selected_agents
+    }
 
     iteration_count = 0
     while True:
         iteration_count += 1
-        feasible_choices = [i for i in range(0, agent_num) if max_moveVals[i] > 0]
+        feasible_choices = [i for i in selected_agents if max_moves[i][1] > 0]
         if feasible_choices == []:
             break  # reach NE solution
         # when eps = 1, it's Random, when eps = 0, it's Greedy
         if np.random.uniform() <= eps:
             # exploration: random allocation
             a_index = np.random.choice(feasible_choices)
+            t_index = max_moves[a_index][0]
         else:
             # exploitation: allocationelse based on reputation or efficiency
-            a_index = np.argmax(max_moveVals)
-            
-        t_index = a_taskInds[a_index][max_moveIndexs[a_index]] if max_moveIndexs[a_index] < len(a_taskInds[a_index]) else task_num
+            best_move = max(max_moves.items(), key=lambda x: x[1][1])
+            a_index = best_move[0]
+            t_index = best_move[1][0]
 
         # perfom move
         old_t_index = allocation_structure[a_index]
@@ -323,8 +337,9 @@ def aGreedyNE(
 
             # task_cons[i][t_index]
             for i in coalition_structure[t_index]:
-                task_cons[i][t_index] = agent_contribution(agents, tasks, i, t_index, coalition_structure[t_index], constraints, gamma)
-                cur_con[i] = task_cons[i][t_index]
+                if agent_selected[i]:
+                    task_cons[i][t_index] = agent_contribution(agents, tasks, i, t_index, coalition_structure[t_index], constraints, gamma)
+                    cur_con[i] = task_cons[i][t_index]
         else:
             affected_a_indexes.append(a_index)
             task_cons[a_index][t_index] = 0
@@ -342,12 +357,13 @@ def aGreedyNE(
                 cur_con[i] = task_cons[i][old_t_index]
 
         for i in affected_a_indexes:
-            move_vals[i] = [
-                task_cons[i][j] - cur_con[i]
-                if (j in a_taskInds[i] and task_selected[j]) or j == task_num
+            move_vals[i] = {
+                j : task_cons[i][j] - cur_con[i]
+                if j == task_num or task_selected[j]
                 else float("-inf")
-                for j in range(0, task_num + 1)
-            ]
+                for j in a_taskInds[i] + [task_num]
+            }
+
 
         ## update other agents w.r.t the affected tasks
         for t_ind in affected_t_indexes:
@@ -356,16 +372,11 @@ def aGreedyNE(
                     task_cons[i][t_ind] = agent_contribution(agents, tasks, i, t_ind, coalition_structure[t_ind], constraints, gamma)
                     move_vals[i][t_ind] = task_cons[i][t_ind] - cur_con[i]
 
-        max_moveIndexs = [
-            np.argmax([move_vals[i][j] for j in a_taskInds[i] + [task_num]])
-            for i in range(0, agent_num)
-        ]
-        max_moveVals = [
-            move_vals[i][a_taskInds[i][max_moveIndexs[i]]]
-            if max_moveIndexs[i] < len(a_taskInds[i])
-            else move_vals[i][task_num]
-            for i in range(0, agent_num)
-        ]
+        max_moves = {
+            i : max(move_vals[i].items(), key=lambda x: x[1])
+            for i in selected_agents
+        }
+
 
     return (
         coalition_structure,
