@@ -334,3 +334,109 @@ def AOsearchGNE(
             break
 
     return best_coalition_structure, best_sys_reward, total_iteration_count, total_re_assignment_count, loop_count
+
+
+def ao_search(
+        node_type_info: dict[int, NodeType], 
+        children_info: dict[int, list[int]],
+        reward_function: dict[int, float],
+        root_node_id=0,
+    ):
+    
+    st_children_info : dict[int, list[int]] = {
+        node_id: [] if node_type_info[node_id] == NodeType.OR else children_list
+        for node_id, children_list in children_info.items()
+    }
+
+    def ao_helper(node_id: int):
+
+        node_type = node_type_info[node_id]
+        
+        if node_type == NodeType.LEAF:
+            return reward_function[node_id], [node_id]
+
+        total_reward = 0 if node_type == NodeType.AND else float('-inf')
+
+        best_solution = []
+
+        if node_type == NodeType.AND:
+
+            for child_id in children_info[node_id]:
+
+                child_reward, child_solution = ao_helper(child_id)
+
+                total_reward += child_reward
+                best_solution += child_solution
+                
+        else: # OR node
+            for child_id in children_info[node_id]:
+                
+                child_reward, child_solution = ao_helper(child_id)
+
+                if child_reward > total_reward:
+                    total_reward = child_reward
+                    best_solution = child_solution
+                    st_children_info[node_id] = [child_id]
+                    
+        # expanded.append(node_id)
+        return total_reward, best_solution
+    
+    total_reward, best_leafs_solution = ao_helper(root_node_id)
+    
+    return total_reward, best_leafs_solution, st_children_info
+
+
+
+def OrNE(
+        node_type_info: dict[int, NodeType], 
+        children_info: dict[int, list[int]], 
+        parent_info: dict[int, int],
+        nodes_upper_bound: dict[int, float],
+        nodes_upper_bound_min: dict[int, float],
+        leaf2task: dict[int, int],
+        capabilities: list[int],
+        tasks: list[list[int]],
+        agents: list[dict[int, float]],
+        constraints,
+        coalition_structure : list[list[int]] = [],
+        eps=0, 
+        gamma=1,
+        root_node_id=0,
+    ):
+
+    task_num = len(tasks)
+
+    # Initialize coalition structure
+    if coalition_structure is None or coalition_structure == [] or all([len(coalition_structure[j]) == 0 for j in range(0, task_num)]):
+        # Perform GreedyNE on the entire system, not considering the tree structure
+        coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE(
+            agents=agents,
+            tasks=tasks,
+            constraints=constraints,
+            coalition_structure=coalition_structure,
+            selected_tasks=None,
+            eps=eps,
+            gamma=gamma
+        )
+
+    reward_function = {
+        leaf_id: task_reward(tasks[leaf2task[leaf_id]], [agents[i] for i in coalition_structure[leaf2task[leaf_id]]], gamma)
+        for leaf_id in leaf2task
+    }
+
+    true_sys_reward, best_leafs_solution, st_children_info = ao_search(
+        node_type_info=node_type_info,
+        children_info=children_info,
+        reward_function=reward_function,
+        root_node_id=root_node_id,
+    )
+
+    coalition_structure, system_reward, iteration_count, re_assignment_count = aGreedyNE(
+        agents=agents,
+        tasks=tasks,
+        constraints=constraints,
+        coalition_structure=coalition_structure,
+        selected_tasks=best_leafs_solution,
+        eps=eps,
+        gamma=gamma
+    )
