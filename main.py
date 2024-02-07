@@ -221,7 +221,7 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
 
 
     start = time.perf_counter()
-    rorne_alloc, rorne_sys_reward = OrNE(
+    rorne_alloc, rorne_sys_reward, rorne_iteration_count, rorne_re_assignment_count = OrNE(
         node_type_info=node_type_info,
         children_info=children_info,
         ubcv_info=ubcv_info,
@@ -242,9 +242,11 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     result_row["OrNE"] = {
         "reward": rorne_sys_reward,
         "time": end - start,
+        "iteration": rorne_iteration_count,
+        "re-assignment": rorne_re_assignment_count,
     }
 
-    print(f"OrNE: {rorne_sys_reward}\ttime: {end - start}")
+    print(f"OrNE: {rorne_sys_reward}\ttime: {end - start}\titeration: {rorne_iteration_count}\tre-assignment {rorne_re_assignment_count}")
 
 
     # start = time.perf_counter()

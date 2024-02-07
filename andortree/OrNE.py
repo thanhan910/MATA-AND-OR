@@ -91,15 +91,15 @@ def get_upperbound_node_descendants(
     for i in agents_group:
         agent_selected[i] = True
 
-    def _upperbound_node(query_nodeId):
+    def _upperbound_node(node_id):
         """
         Calculate the upper bound of the system reward, i.e. at the root of the AND-OR goal tree.
         """
         nodes_agents = nodes_constraints[1]
 
-        caps_ranked = [sorted([agents[i][c] for i in nodes_agents[query_nodeId] if agent_selected[i]], reverse=True) for c in capabilities]
+        caps_ranked = [sorted([agents[i][c] for i in nodes_agents[node_id] if agent_selected[i]], reverse=True) for c in capabilities] # TODO: Analyze this. Seems like when we have "if agent_selected[i]", the algorithm will not explore the child node, resulting in a suboptimal solution. (Depends. Sometimes it's suboptimal, sometimes it's actually optimal.)
 
-        cap_req_num = ubcv_info[query_nodeId]
+        cap_req_num = ubcv_info[node_id]
         
         return sum([sum(caps_ranked[c][:int(cap_req_num[c])]) for c in capabilities])
 
@@ -153,34 +153,40 @@ def OrNE(
     task_num = len(tasks)
     agent_num = len(agents)
 
-    myGreedyNE = lambda original_allocation_structure, selected_tasks, selected_agents: alGreedyNE(
-        agents=agents, 
-        tasks=tasks, 
-        constraints=constraints, 
-        original_allocation_structure=original_allocation_structure,
-        selected_tasks=selected_tasks, 
-        selected_agents=selected_agents, 
-        eps=eps, 
-        gamma=gamma
-    )
+    def _GreedyNE(original_allocation_structure, selected_tasks, selected_agents):
+        return alGreedyNE(
+            agents=agents, 
+            tasks=tasks, 
+            constraints=constraints, 
+            original_allocation_structure=original_allocation_structure,
+            selected_tasks=selected_tasks, 
+            selected_agents=selected_agents, 
+            eps=eps, 
+            gamma=gamma
+        )
+    
+    def _ao_search(reward_function, root_node_id):
+        return ao_search(
+            node_type_info=node_type_info,
+            children_info=children_info,
+            reward_function=reward_function,
+            root_node_id=root_node_id,
+        )
+    
 
-    my_ao_search = lambda reward_function, root_node_id: ao_search(
-        node_type_info=node_type_info,
-        children_info=children_info,
-        reward_function=reward_function,
-        root_node_id=root_node_id,
-    )
+    def _get_upper_bound(node_id, agents_group):
+        return get_upperbound_node_descendants(
+            query_nodeId=node_id,
+            agents_group=agents_group,
+            ubcv_info=ubcv_info,
+            children_info=children_info,
+            node_type_info=node_type_info,
+            capabilities=capabilities,
+            agents=agents,
+            nodes_constraints=nodes_constraints,
+        )
 
-    my_get_upper_bound = lambda node_id, agents_group: get_upperbound_node_descendants(
-        query_nodeId=node_id,
-        agents_group=agents_group,
-        ubcv_info=ubcv_info,
-        children_info=children_info,
-        node_type_info=node_type_info,
-        capabilities=capabilities,
-        agents=agents,
-        nodes_constraints=nodes_constraints,
-    )
+    
 
     if coalition_structure is None or coalition_structure == {}:
         coalition_structure = {j: [] for j in range(0, len(tasks))}
@@ -194,6 +200,9 @@ def OrNE(
 
     def aos_helper(node_id, agents_group, allocation_structure_0 = None):
 
+        total_iterations_count = 0
+        total_reassignment_count = 0
+
         node_type = node_type_info[node_id]
 
         if node_type == NodeType.LEAF:
@@ -201,7 +210,7 @@ def OrNE(
             new_allocation_structure = { i: task_id for i in agents_group }
             new_coalition_structure = { task_id: agents_group }
             reward_value = task_reward(tasks[task_id], [agents[i] for i in agents_group], gamma)
-            return new_allocation_structure, reward_value
+            return new_allocation_structure, reward_value, total_iterations_count, total_reassignment_count
 
 
 
@@ -211,7 +220,7 @@ def OrNE(
         # Initialize allocation structure
         if allocation_structure_0 is None:
             # Perform GreedyNE on the entire system, not considering the tree structure
-            coalition_structure_1, allocation_structure_1, _, _, _ = myGreedyNE(
+            coalition_structure_1, allocation_structure_1, _, iter_count_1, reassign_1 = _GreedyNE(
                 original_allocation_structure=None,
                 selected_tasks=descendant_tasks,
                 selected_agents=agents_group,
@@ -221,6 +230,8 @@ def OrNE(
             coalition_structure_1 = { j: [] for j in range(0, task_num + 1) }
             for i in allocation_structure_1:
                 coalition_structure_1[allocation_structure_1[i]].append(i)
+                iter_count_1 = 0
+                reassign_1 = 0
                     
 
         reward_function = {
@@ -228,18 +239,21 @@ def OrNE(
             for task_id in descendant_tasks
         }
 
-        true_sys_reward_1, best_leafs_solution, st_children_info = my_ao_search(
+        true_sys_reward_1, best_leafs_solution, st_children_info = _ao_search(
             reward_function=reward_function,
             root_node_id=node_id,
         )
 
         best_tasks_solution = [leaf2task[leaf_id] for leaf_id in best_leafs_solution]
 
-        coalition_structure_2, allocation_structure_2, system_reward_2, _, _ = myGreedyNE(
+        coalition_structure_2, allocation_structure_2, system_reward_2, iter_count_2, reassign_2  = _GreedyNE(
             original_allocation_structure=allocation_structure_1,
             selected_tasks=best_tasks_solution,
             selected_agents=agents_group,
         )
+
+        total_iterations_count += iter_count_1 + iter_count_2
+        total_reassignment_count += reassign_1 + reassign_2
 
         # Update allocation_solution
         allocation_solution = {}
@@ -251,14 +265,17 @@ def OrNE(
             for child_id in children_info[node_id]:
                 child_tasks_descendants = [leaf2task[leaf_id] for leaf_id in leaves_list_info[child_id]]
                 child_agents_group = sum([coalition_structure_2.get(task_id, []) for task_id in child_tasks_descendants], [])
-                child_allocation_solution, child_system_reward = aos_helper(child_id, child_agents_group, allocation_structure_2)
+                child_allocation_solution, child_system_reward, child_iter_count, child_reassign_count = aos_helper(child_id, child_agents_group, allocation_structure_2)
                 # Update allocation_solution based on child_allocation_solution
                 for j in child_allocation_solution:
                     allocation_solution[j] = child_allocation_solution[j]
                 
                 total_reward += child_system_reward
 
-            return allocation_solution, total_reward
+                total_iterations_count += child_iter_count
+                total_reassignment_count += child_reassign_count
+                
+            return allocation_solution, total_reward, total_iterations_count, total_reassignment_count
         
         else: # if node_type == NodeType.OR:
             current_child_id = st_children_info[node_id][0]
@@ -268,12 +285,16 @@ def OrNE(
                 if child_id == current_child_id:
                     continue
                 # Bound pruning
-                nodes_upper_bound_min = my_get_upper_bound(child_id, agents_group) # TODO: Analyze this. Seems like when the upper bound is correct, the algorithm will not explore the child node, resulting in a suboptimal solution.
+                nodes_upper_bound_min = _get_upper_bound(child_id, agents_group) # TODO: Analyze this. Seems like when the upper bound is correct (and subsequentially, a branch is pruned), the algorithm will not explore the child node, resulting in a suboptimal solution. (Depends. Sometimes it's suboptimal, sometimes it's actually optimal.)
                 reward_upper_bound = nodes_upper_bound_min[child_id]
                 if reward_upper_bound <= total_reward:
                     continue
                 # Branch to child_id
-                child_allocation_solution, child_system_reward = aos_helper(child_id, agents_group, None)
+                child_allocation_solution, child_system_reward, child_iter_count, child_reassign_count = aos_helper(child_id, agents_group, None)
+
+                total_iterations_count += child_iter_count
+                total_reassignment_count += child_reassign_count
+
                 if child_system_reward > total_reward:
                     total_reward = child_system_reward
                     final_allocation_solution = child_allocation_solution
@@ -282,7 +303,7 @@ def OrNE(
             for j in final_allocation_solution:
                 allocation_solution[j] = final_allocation_solution[j]
 
-            return allocation_solution, total_reward
+            return allocation_solution, total_reward, total_iterations_count, total_reassignment_count
 
 
     return aos_helper(root_node_id, list(range(0, len(agents))), allocation_structure_global)
