@@ -232,6 +232,7 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         tasks=tasks,
         agents=agents,
         constraints=constraints,
+        nodes_constraints=nodes_constraints,
         coalition_structure=None,
         gamma=gamma,
         root_node_id=0,

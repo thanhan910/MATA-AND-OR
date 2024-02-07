@@ -563,7 +563,10 @@ def adGreedyNE(
 
     return (
         new_coalition_structure,
-        sys_rewards_tasks(tasks, agents, new_coalition_structure, gamma),
+        sum(
+            task_reward(tasks[j], [agents[i] for i in new_coalition_structure[j]], gamma)
+            for j in selected_tasks
+        ),
         iteration_count,
         re_assignment_count,
     )
@@ -614,6 +617,10 @@ def alGreedyNE(
             agent_selected[i] = True
 
 
+    if original_allocation_structure is None or original_allocation_structure == {}:
+        original_allocation_structure = { i : dummy_task_id for i in selected_agents }
+
+
     allocation_structure = { i : dummy_task_id for i in selected_agents }
     for i, j in original_allocation_structure.items():
         if agent_selected[i]:
@@ -621,10 +628,19 @@ def alGreedyNE(
 
     coalition_structure = { j : [] for j in selected_tasks + [dummy_task_id] }
 
-    for i, j in allocation_structure.items():
-        coalition_structure[j].append(i)
+    cur_con = { i : 0 for i in selected_agents }
 
-    cur_con = { i : agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma) if j != dummy_task_id else 0 for i, j in allocation_structure.items() }
+    for i, j in allocation_structure.items():
+        if task_selected[j]:
+            coalition_structure[j].append(i)
+            if j != dummy_task_id:
+                cur_con[i] = agent_contribution(agents, tasks, i, j, coalition_structure[j], constraints, gamma)
+            else:
+                cur_con[i] = 0
+        else:
+            coalition_structure[dummy_task_id].append(i)
+            cur_con[i] = 0
+
         
 
     task_cons = {
@@ -727,11 +743,13 @@ def alGreedyNE(
         }
 
 
-
     return (
         coalition_structure,
         allocation_structure,
-        sys_rewards_tasks(tasks, agents, coalition_structure, gamma),
+        sum(
+            task_reward(tasks[j], [agents[i] for i in coalition_structure[j]], gamma)
+            for j in selected_tasks
+        ),
         iteration_count,
         re_assignment_count,
     )

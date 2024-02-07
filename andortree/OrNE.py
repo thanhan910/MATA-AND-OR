@@ -70,6 +70,7 @@ def ao_search(
 
 def get_upperbound_node_descendants(
         query_nodeId : int,
+        agents_group : list[int],
         ubcv_info : dict[int, np.ndarray],
         children_info : dict[int, list[int]],
         node_type_info : dict[int, NodeType],
@@ -86,13 +87,17 @@ def get_upperbound_node_descendants(
 
     """
 
+    agent_selected = {i: False for i in range(len(agents))}
+    for i in agents_group:
+        agent_selected[i] = True
+
     def _upperbound_node(query_nodeId):
         """
         Calculate the upper bound of the system reward, i.e. at the root of the AND-OR goal tree.
         """
         nodes_agents = nodes_constraints[1]
 
-        caps_ranked = [sorted([agents[i][c] for i in nodes_agents[query_nodeId]], reverse=True) for c in capabilities]
+        caps_ranked = [sorted([agents[i][c] for i in nodes_agents[query_nodeId] if agent_selected[i]], reverse=True) for c in capabilities]
 
         cap_req_num = ubcv_info[query_nodeId]
         
@@ -138,6 +143,7 @@ def OrNE(
         tasks: list[list[int]],
         agents: list[dict[int, float]],
         constraints,
+        nodes_constraints : tuple[list[list[int]], dict[int, list[int]]],
         coalition_structure : dict[int, list[int]] = {},
         eps=0, 
         gamma=1,
@@ -165,14 +171,15 @@ def OrNE(
         root_node_id=root_node_id,
     )
 
-    my_get_upper_bound = lambda node_id, agents: get_upperbound_node_descendants(
+    my_get_upper_bound = lambda node_id, agents_group: get_upperbound_node_descendants(
         query_nodeId=node_id,
+        agents_group=agents_group,
         ubcv_info=ubcv_info,
         children_info=children_info,
         node_type_info=node_type_info,
         capabilities=capabilities,
         agents=agents,
-        nodes_constraints=constraints,
+        nodes_constraints=nodes_constraints,
     )
 
     if coalition_structure is None or coalition_structure == {}:
@@ -205,13 +212,13 @@ def OrNE(
         if allocation_structure_0 is None:
             # Perform GreedyNE on the entire system, not considering the tree structure
             coalition_structure_1, allocation_structure_1, _, _, _ = myGreedyNE(
-                original_allocation_structure=allocation_structure_1,
+                original_allocation_structure=None,
                 selected_tasks=descendant_tasks,
                 selected_agents=agents_group,
             )
         else:
             allocation_structure_1 = allocation_structure_0
-            coalition_structure_1 = { j: [] for j in descendant_tasks + [len(tasks)] }
+            coalition_structure_1 = { j: [] for j in range(0, task_num + 1) }
             for i in allocation_structure_1:
                 coalition_structure_1[allocation_structure_1[i]].append(i)
                     
@@ -237,14 +244,13 @@ def OrNE(
         # Update allocation_solution
         allocation_solution = {}
         for i in allocation_structure_2:
-            for j in allocation_structure_2[i]:
-                allocation_solution[i] = j
+            allocation_solution[i] = allocation_structure_2[i]
 
         if node_type == NodeType.AND:
             total_reward = 0
             for child_id in children_info[node_id]:
                 child_tasks_descendants = [leaf2task[leaf_id] for leaf_id in leaves_list_info[child_id]]
-                child_agents_group = sum([coalition_structure_2[task_id] for task_id in child_tasks_descendants], [])
+                child_agents_group = sum([coalition_structure_2.get(task_id, []) for task_id in child_tasks_descendants], [])
                 child_allocation_solution, child_system_reward = aos_helper(child_id, child_agents_group, allocation_structure_2)
                 # Update allocation_solution based on child_allocation_solution
                 for j in child_allocation_solution:
@@ -262,7 +268,7 @@ def OrNE(
                 if child_id == current_child_id:
                     continue
                 # Bound pruning
-                nodes_upper_bound_min = my_get_upper_bound(child_id, [agents[i] for i in agents_group])
+                nodes_upper_bound_min = my_get_upper_bound(child_id, agents_group) # TODO: Analyze this. Seems like when the upper bound is correct, the algorithm will not explore the child node, resulting in a suboptimal solution.
                 reward_upper_bound = nodes_upper_bound_min[child_id]
                 if reward_upper_bound <= total_reward:
                     continue
