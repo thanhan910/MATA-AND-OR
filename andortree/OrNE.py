@@ -1,38 +1,9 @@
 from .node_type import NodeType
 from .GreedyNE import adGreedyNE, alGreedyNE
-from .upper_bound import upper_bound_subsytem
 from .rewards import task_reward, sys_rewards_tasks
 from .tree_utils import traverse_tree
 
 import numpy as np
-
-
-
-
-def update_leaves_info(
-        updated_node : int, 
-        leaves_info : dict[int, list[int]],
-        children_info : dict[int, list[int]],
-        parent_info : dict[int, int],
-        node_type_info : dict[int, NodeType]
-    ):
-    """
-    Update the leaves_info for all ancestors of the updated_node.
-
-    updated_node: the node that has just been updated in leaves_info
-    """
-    current_node = updated_node
-    while current_node != 0:
-        parent_node = parent_info[current_node]
-        if node_type_info[parent_node] == NodeType.AND:
-            leaves_info[parent_node] = sum([leaves_info[child_id] for child_id in children_info[parent_node]], [])
-        else:
-            leaves_info[parent_node] = leaves_info[children_info[parent_node][0]].copy()
-        current_node = parent_node
-
-    return leaves_info
-
-
 
 
 def ao_search(
@@ -45,23 +16,19 @@ def ao_search(
     
     visited = {}
     # expanded = []
-    solution_path_children_info : dict[int, list[int]] = {}
-    solution_path_leaves_info : dict[int, list[int]] = {}
+    st_children_info : dict[int, list[int]] = {
+        node_id: [] if node_type_info[node_id] == NodeType.OR else children_list
+        for node_id, children_list in children_info.items()
+    }
 
     def aos_helper(node_id: int):
 
         if node_id not in visited:
-            visited[node_id] = True
-            solution_path_children_info[node_id] = []
-            solution_path_leaves_info[node_id] = []
+            visited[node_id] = True            
 
         node_type = node_type_info[node_id]
         
         if node_type == NodeType.LEAF:
-            # expanded.append(node_id)
-            solution_path_leaves_info[node_id] = [node_id]
-            # Update solution_path_leaves_info for all ancestors
-            update_leaves_info(node_id, solution_path_leaves_info, solution_path_children_info, parent_info, node_type_info)
             return reward_function[node_id], [node_id]
 
         total_reward = 0 if node_type == NodeType.AND else float('-inf')
@@ -72,10 +39,6 @@ def ao_search(
 
             for child_id in children_info[node_id]:
 
-                solution_path_children_info[node_id].append(child_id)
-                # solution_path_leaves_info[node_id].append(child_id)
-                # update_leaves_info(node_id, solution_path_leaves_info, solution_path_children_info, parent_info, node_type_info)
-                
                 child_reward, child_solution = aos_helper(child_id)
 
                 total_reward += child_reward
@@ -84,44 +47,26 @@ def ao_search(
         else:
             for child_id in children_info[node_id]:
 
-                if solution_path_children_info[node_id] == []:
-                    solution_path_children_info[node_id] = [child_id]
+                if st_children_info[node_id] == []:
+                    st_children_info[node_id] = [child_id]
                 
                 child_reward, child_solution = aos_helper(child_id)
 
                 if child_reward > total_reward:
                     total_reward = child_reward
                     best_solution = child_solution
-                    solution_path_children_info[node_id] = [child_id]
-                    solution_path_leaves_info[node_id] = child_solution
-                    # Update solution_path_leaves_info for all ancestors
-                    update_leaves_info(node_id, solution_path_leaves_info, solution_path_children_info, parent_info, node_type_info)
+                    st_children_info[node_id] = [child_id]
+
                     
         # expanded.append(node_id)
         return total_reward, best_solution
     
     total_reward, best_leafs_solution = aos_helper(root_node_id)
     
-    return total_reward, best_leafs_solution, solution_path_children_info, solution_path_leaves_info
+    return total_reward, best_leafs_solution, st_children_info
 
 
-def upperbound_node(
-        ubcv_info : dict[int, np.ndarray],
-        capabilities : list[int], 
-        agents : list[list[float]],
-        nodes_constraints : tuple[list[list[int]], dict[int, list[int]]],
-        query_nodeId=0 
-    ):
-    """
-    Calculate the upper bound of the system reward, i.e. at the root of the AND-OR goal tree.
-    """
-    nodes_agents = nodes_constraints[1]
 
-    caps_ranked = [sorted([agents[i][c] for i in nodes_agents[query_nodeId]], reverse=True) for c in capabilities]
-
-    cap_req_num = ubcv_info[query_nodeId]
-    
-    return sum([sum(caps_ranked[c][:int(cap_req_num[c])]) for c in capabilities])
 
 
 def get_upperbound_node_descendants(
