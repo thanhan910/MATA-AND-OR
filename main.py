@@ -5,9 +5,9 @@ import os
 import random
 import statistics
 
-from utils.problem import *
+from utils.problem import gen_tasks, gen_constraints, gen_agents
 
-from heterogeneous.GreedyNE import * 
+from heterogeneous.GreedyNE import eGreedy2
 from heterogeneous.solutions import *
 from heterogeneous.upper_bound import *
 
