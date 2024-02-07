@@ -81,6 +81,9 @@ def main():
             rand_tasks = random.sample(range(0, task_num), task_num)
             rand_tasks = list(rand_tasks)
 
+            print(rand_agents)
+            print(rand_tasks)
+
 
             start = time.perf_counter()
             r = adGreedyNE(agents=agents, tasks=tasks, constraints=constraints, original_coalition_structure={}, selected_tasks=rand_tasks, selected_agents=list(rand_agents), gamma=gamma)
