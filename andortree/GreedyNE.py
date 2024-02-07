@@ -465,10 +465,10 @@ def adGreedyNE(
     task_cons = {
         i : {
             j : agent_contribution(agents, tasks, i, j, new_coalition_structure[j], constraints, gamma)
-            if j != task_num and task_selected[j]
-            else 0 if j == task_num
+            if j != dummy_task_id and task_selected[j]
+            else 0 if j == dummy_task_id
             else float("-inf")
-            for j in a_taskInds[i] + [task_num]
+            for j in a_taskInds[i] + [dummy_task_id]
         }
         for i in selected_agents
     }
@@ -477,9 +477,9 @@ def adGreedyNE(
     move_vals = {
         i : {
             j : task_cons[i][j] - cur_con[i] 
-            if j == task_num or task_selected[j]
+            if j == dummy_task_id or task_selected[j]
             else float("-inf")
-            for j in a_taskInds[i] + [task_num]
+            for j in a_taskInds[i] + [dummy_task_id]
         }
         for i in selected_agents
     }
@@ -514,7 +514,7 @@ def adGreedyNE(
         # update agents in the new coalition
         affected_a_indexes = []
         affected_t_indexes = []
-        if t_index != task_num:
+        if t_index != dummy_task_id:
             affected_a_indexes.extend(new_coalition_structure[t_index])
             affected_t_indexes.append(t_index)
 
@@ -529,7 +529,7 @@ def adGreedyNE(
             cur_con[a_index] = 0
 
         # update agent in the old coalition (if applicable)
-        if (old_t_index != task_num):  
+        if (old_t_index != dummy_task_id):  
             # if agents indeed moved from another task, we have to change every agent from the old as well
             re_assignment_count += 1
             new_coalition_structure[old_t_index].remove(a_index)
@@ -542,9 +542,9 @@ def adGreedyNE(
         for i in affected_a_indexes:
             move_vals[i] = {
                 j : task_cons[i][j] - cur_con[i]
-                if j == task_num or task_selected[j]
+                if j == dummy_task_id or task_selected[j]
                 else float("-inf")
-                for j in a_taskInds[i] + [task_num]
+                for j in a_taskInds[i] + [dummy_task_id]
             }
 
 
