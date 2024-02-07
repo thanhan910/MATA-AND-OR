@@ -227,7 +227,7 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         ubcv_info=ubcv_info,
         leaf2task=leaf2task,
         task2leaf=leaf_nodes,
-        leaves_info=leaves_list_info,
+        leaves_list_info=leaves_list_info,
         capabilities=capabilities,
         tasks=tasks,
         agents=agents,

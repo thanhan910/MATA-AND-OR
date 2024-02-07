@@ -8,8 +8,7 @@ import numpy as np
 
 def ao_search(
         node_type_info: dict[int, NodeType], 
-        children_info: dict[int, list[int]], 
-        parent_info: dict[int, int],
+        children_info: dict[int, list[int]],
         reward_function: dict[int, float],
         root_node_id=0,
     ):
@@ -134,7 +133,7 @@ def OrNE(
         ubcv_info : dict[int, np.ndarray],
         leaf2task: dict[int, int],
         task2leaf: dict[int, int],
-        leaves_info: dict[int, list[int]],
+        leaves_list_info: dict[int, list[int]],
         capabilities: list[int],
         tasks: list[list[int]],
         agents: list[dict[int, float]],
@@ -199,8 +198,8 @@ def OrNE(
 
 
 
-        descendant_leaves = leaves_info[node_id]
-        descendant_tasks = [task2leaf[task_id] for task_id in descendant_leaves]
+        descendant_leaves = leaves_list_info[node_id]
+        descendant_tasks = [leaf2task[task_id] for task_id in descendant_leaves]
 
         # Initialize allocation structure
         if allocation_structure_0 is None:
@@ -214,8 +213,8 @@ def OrNE(
             allocation_structure_1 = allocation_structure_0
             coalition_structure_1 = { j: [] for j in descendant_tasks + [len(tasks)] }
             for i in allocation_structure_1:
-                for j in allocation_structure_1[i]:
-                    coalition_structure_1[j].append(i)
+                coalition_structure_1[allocation_structure_1[i]].append(i)
+                    
 
         reward_function = {
             task2leaf[task_id]: task_reward(tasks[task_id], [agents[i] for i in coalition_structure_1[task_id]], gamma)
@@ -227,7 +226,7 @@ def OrNE(
             root_node_id=node_id,
         )
 
-        best_tasks_solution = [task2leaf[task_id] for task_id in best_leafs_solution]
+        best_tasks_solution = [leaf2task[leaf_id] for leaf_id in best_leafs_solution]
 
         coalition_structure_2, allocation_structure_2, system_reward_2, _, _ = myGreedyNE(
             original_allocation_structure=allocation_structure_1,
@@ -244,7 +243,7 @@ def OrNE(
         if node_type == NodeType.AND:
             total_reward = 0
             for child_id in children_info[node_id]:
-                child_tasks_descendants = [leaf2task[leaf_id] for leaf_id in leaves_info[child_id]]
+                child_tasks_descendants = [leaf2task[leaf_id] for leaf_id in leaves_list_info[child_id]]
                 child_agents_group = sum([coalition_structure_2[task_id] for task_id in child_tasks_descendants], [])
                 child_allocation_solution, child_system_reward = aos_helper(child_id, child_agents_group, allocation_structure_2)
                 # Update allocation_solution based on child_allocation_solution
