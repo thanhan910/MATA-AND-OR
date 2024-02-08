@@ -20,7 +20,7 @@ from andortree.treeGNE import treeGNE, treeGNE2, fastTreeGNE2
 from andortree.simpleGNE import simpleGNE
 from andortree.dnfGNE import dnfGNE
 from andortree.AOGNE import AOsearchGNE
-from andortree.OrNE import OrNE, BnBOrNE
+from andortree.OrNE import BnBOrNE
 
 
 
@@ -221,7 +221,7 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
 
 
     start = time.perf_counter()
-    rorne_alloc, rorne_sys_reward, rorne_iteration_count, rorne_re_assignment_count = OrNE(
+    rorne_alloc, rorne_sys_reward, rorne_iteration_count, rorne_re_assignment_count = BnBOrNE(
         node_type_info=node_type_info,
         children_info=children_info,
         ubcv_info=ubcv_info,
@@ -236,6 +236,7 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         coalition_structure=None,
         gamma=gamma,
         root_node_id=0,
+        use_branch_and_bound=False,
     )
     end = time.perf_counter()
 
