@@ -221,7 +221,17 @@ def BnBOrNE(
         # Initialization phase
 
         # Initialize allocation structure
+        not_initialized = False
         if allocation_structure_0 is None:
+            not_initialized = True
+        else:
+            not_initialized = True
+            for i in agents_group:
+                if i in allocation_structure_0 and allocation_structure_0[i] in descendant_tasks:
+                    not_initialized = False
+                    break
+
+        if not_initialized:
             # Perform GreedyNE on the entire system, not considering the tree structure
             coalition_structure_1, allocation_structure_1, _, iter_count_1, reassign_1 = _GreedyNE(
                 original_allocation_structure=None,
