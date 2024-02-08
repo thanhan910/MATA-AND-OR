@@ -97,7 +97,7 @@ def get_upperbound_node_descendants(
         """
         nodes_agents = nodes_constraints[1]
 
-        caps_ranked = [sorted([agents[i][c] for i in nodes_agents[node_id] if agent_selected[i]], reverse=True) for c in capabilities] # TODO: Analyze this. Seems like when we have "if agent_selected[i]", the algorithm will not explore the child node, resulting in a suboptimal solution. (Depends. Sometimes it's suboptimal, sometimes it's actually optimal.)
+        caps_ranked = [sorted([agents[i][c] for i in nodes_agents[node_id] if agent_selected[i]], reverse=True) for c in capabilities]
 
         cap_req_num = ubcv_info[node_id]
         
@@ -142,7 +142,7 @@ def OrNE(
         capabilities: list[int],
         tasks: list[list[int]],
         agents: list[dict[int, float]],
-        constraints,
+        constraints : tuple[list[list], list[list[int]]],
         nodes_constraints : tuple[list[list[int]], dict[int, list[int]]],
         coalition_structure : dict[int, list[int]] = {},
         eps=0, 
@@ -186,7 +186,6 @@ def OrNE(
             nodes_constraints=nodes_constraints,
         )
 
-    
 
     if coalition_structure is None or coalition_structure == {}:
         coalition_structure = {j: [] for j in range(0, len(tasks))}
@@ -198,6 +197,9 @@ def OrNE(
             allocation_structure_global[i] = j
 
 
+    t_agents = constraints[1]
+
+
     def aos_helper(node_id, agents_group, allocation_structure_0 = None):
 
         total_iterations_count = 0
@@ -207,11 +209,9 @@ def OrNE(
 
         if node_type == NodeType.LEAF:
             task_id = leaf2task[node_id]
-            new_allocation_structure = { i: task_id for i in agents_group }
-            new_coalition_structure = { task_id: agents_group }
-            reward_value = task_reward(tasks[task_id], [agents[i] for i in agents_group], gamma)
+            new_allocation_structure = { i: task_id if i in t_agents[task_id] else task_num for i in agents_group }
+            reward_value = task_reward(tasks[task_id], [agents[i] for i in agents_group if i in t_agents[task_id]], gamma)
             return new_allocation_structure, reward_value, total_iterations_count, total_reassignment_count
-
 
 
         descendant_leaves = leaves_list_info[node_id]
@@ -285,12 +285,15 @@ def OrNE(
                 if child_id == current_child_id:
                     continue
                 # Bound pruning
-                # nodes_upper_bound_min = _get_upper_bound(child_id, agents_group) # TODO: Analyze this. Seems like when the upper bound is correct (and subsequentially, a branch is pruned), the algorithm will not explore the child node, resulting in a suboptimal solution. (Depends. Sometimes it's suboptimal, sometimes it's actually optimal.)
+                # nodes_upper_bound_min = _get_upper_bound(child_id, agents_group)
                 # reward_upper_bound = nodes_upper_bound_min[child_id]
                 # if reward_upper_bound <= total_reward:
                 #     continue
                 # Branch to child_id
                 child_allocation_solution, child_system_reward, child_iter_count, child_reassign_count = aos_helper(child_id, agents_group, None)
+
+                # if child_system_reward > reward_upper_bound:
+                #     print("Warning: Child node reward is greater than the upper bound. This should not happen, or the upper bound is incorrect.")
 
                 total_iterations_count += child_iter_count
                 total_reassignment_count += child_reassign_count
@@ -364,7 +367,6 @@ def BnBOrNE(
         )
 
     
-
     if coalition_structure is None or coalition_structure == {}:
         coalition_structure = {j: [] for j in range(0, len(tasks))}
         coalition_structure[len(tasks)] = list(range(0, len(agents)))  # default coalition structure, the last one is dummy coalition
@@ -373,6 +375,8 @@ def BnBOrNE(
     for j in coalition_structure:
         for i in coalition_structure[j]:
             allocation_structure_global[i] = j
+
+    t_agents = constraints[1]
 
 
     def aos_helper(node_id, agents_group, allocation_structure_0 = None):
@@ -384,11 +388,9 @@ def BnBOrNE(
 
         if node_type == NodeType.LEAF:
             task_id = leaf2task[node_id]
-            new_allocation_structure = { i: task_id for i in agents_group }
-            new_coalition_structure = { task_id: agents_group }
-            reward_value = task_reward(tasks[task_id], [agents[i] for i in agents_group], gamma)
+            new_allocation_structure = { i: task_id if i in t_agents[task_id] else task_num for i in agents_group }
+            reward_value = task_reward(tasks[task_id], [agents[i] for i in agents_group if i in t_agents[task_id]], gamma)
             return new_allocation_structure, reward_value, total_iterations_count, total_reassignment_count
-
 
 
         descendant_leaves = leaves_list_info[node_id]
@@ -462,7 +464,7 @@ def BnBOrNE(
                 if child_id == current_child_id:
                     continue
                 # Bound pruning
-                nodes_upper_bound_min = _get_upper_bound(child_id, agents_group) # TODO: Analyze this. Seems like when the upper bound is correct (and subsequentially, a branch is pruned), the algorithm will not explore the child node, resulting in a suboptimal solution. (Depends. Sometimes it's suboptimal, sometimes it's actually optimal.)
+                nodes_upper_bound_min = _get_upper_bound(child_id, agents_group)
                 reward_upper_bound = nodes_upper_bound_min[child_id]
                 if reward_upper_bound <= total_reward:
                     continue
