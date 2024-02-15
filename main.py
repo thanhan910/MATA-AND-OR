@@ -279,6 +279,36 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     print(f"BnBOrNE: {rorne_sys_reward}\ttime: {end - start}\titeration: {rorne_iteration_count}\tre-assignment {rorne_re_assignment_count}")
 
 
+    start = time.perf_counter()
+    rorne_alloc, rorne_sys_reward, rorne_iteration_count, rorne_re_assignment_count = BnBOrNE(
+        node_type_info=node_type_info,
+        children_info=children_info,
+        ubcv_info=ubcv_info,
+        leaf2task=leaf2task,
+        task2leaf=leaf_nodes,
+        leaves_list_info=leaves_list_info,
+        capabilities=capabilities,
+        tasks=tasks,
+        agents=agents,
+        constraints=constraints,
+        nodes_constraints=nodes_constraints,
+        coalition_structure=None,
+        gamma=gamma,
+        root_node_id=0,
+        skip_initial_branch=True,
+    )
+    end = time.perf_counter()
+
+    result_row["BnBOrNEskip"] = {
+        "reward": rorne_sys_reward,
+        "time": end - start,
+        "iteration": rorne_iteration_count,
+        "re-assignment": rorne_re_assignment_count,
+    }
+
+    print(f"BnBOrNEskip: {rorne_sys_reward}\ttime: {end - start}\titeration: {rorne_iteration_count}\tre-assignment {rorne_re_assignment_count}")
+
+
     # start = time.perf_counter()
     # rdnf_coalition_structure, rdnf_system_reward, rdnf_total_assessment_count, rdnf_iteration_count, rdnf_re_assignment_count = dnfGNE(
     #     node_type_info=node_type_info,

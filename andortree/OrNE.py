@@ -150,6 +150,7 @@ def BnBOrNE(
         gamma=1,
         root_node_id=0,
         use_branch_and_bound=True,
+        skip_initial_branch=False,
     ):
     
     task_num = len(tasks)
@@ -295,6 +296,16 @@ def BnBOrNE(
             current_child_id = st_children_info[node_id][0]
             total_reward = system_reward_2
             final_allocation_solution = allocation_structure_2.copy()
+            if not skip_initial_branch:
+                child_allocation_solution, child_system_reward, child_iter_count, child_reassign_count = aos_helper(current_child_id, agents_group, allocation_structure_2)
+
+                total_iterations_count += child_iter_count
+                total_reassignment_count += child_reassign_count
+
+                if child_system_reward > total_reward:
+                    total_reward = child_system_reward
+                    final_allocation_solution = child_allocation_solution
+
             for child_id in children_info[node_id]:
                 if child_id == current_child_id:
                     continue
