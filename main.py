@@ -588,7 +588,7 @@ def main():
             # increase the task_num
             t_max_edge += 1
         
-        break
+        
 
 
 if __name__ == "__main__":
