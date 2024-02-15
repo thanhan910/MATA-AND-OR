@@ -639,6 +639,7 @@ def alGreedyNE(
                 cur_con[i] = 0
         else:
             coalition_structure[dummy_task_id].append(i)
+            allocation_structure[i] = dummy_task_id
             cur_con[i] = 0
 
         
@@ -732,7 +733,7 @@ def alGreedyNE(
 
         ## update other agents w.r.t the affected tasks
         for t_ind in affected_t_indexes:
-            for i in range(0, agent_num):
+            for i in selected_agents:
                 if (i not in coalition_structure[t_ind]) and (t_ind in a_taskInds[i]):
                     task_cons[i][t_ind] = agent_contribution(agents, tasks, i, t_ind, coalition_structure[t_ind], constraints, gamma)
                     move_vals[i][t_ind] = task_cons[i][t_ind] - cur_con[i]
