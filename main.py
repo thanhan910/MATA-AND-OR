@@ -563,6 +563,7 @@ def main():
             print("-----------------------------------")
 
             result_row = main_tree(capabilities, tasks, agents, constraints, gamma)
+            result_row["info"] = result
 
             # append data and result
             files = {"local-results.jsonl": [result_row, ""]}
