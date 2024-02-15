@@ -34,17 +34,15 @@ def append_record(record, filename, typ):
         f.close()
 
 
-def main_tree(capabilities, tasks, agents, constraints, gamma):
-
+def generate_tree_problem(tasks):
     """
-    Driver code for algorithms related to AND-OR goal tree.
+    Encapsulate the generation of variables that represent the tree.
+
+    This is so that only a number of data structures and variable types can be used as initial input to the MATA problem.
+
+    All other variables must be generated within the solution function and/or must be counted as a procedure within the solution, and thus when calculating the solution speed, we must include the time taken to generate those other variables.
     """
-
-    result_row = {}
-
     task_num = len(tasks)
-
-    result_row["task_num"] = task_num
 
     depth_info, parent_info, children_info, leaves_by_depth = gen_tree(task_num, min_leaf_depth=2)
     
@@ -56,45 +54,38 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
 
     node_type_info = assign_node_type(depth_info, children_info, leaf_nodes)
 
+    return node_type_info, parent_info, children_info, leaf2task, leaf_nodes
+
+
+def solve_get_upper_bound(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
+    start = time.perf_counter()
     leaves_list_info = get_leaves_list_info(parent_info=parent_info, leaf_nodes=leaf_nodes)
-
     nodes_constraints = get_nodes_constraints(node_type_info=node_type_info, leaves_list_info=leaves_list_info, leaf2task=leaf2task, constraints=constraints)
-
     tasks_capVecs = get_cap_vector_all(capabilities, tasks)
-
     ubcv_info = calculate_ubc_vectors(node_type_info, parent_info, leaves_list_info, leaf2task, tasks_capVecs, capabilities, query_nodeId=0)
-
-    start = time.perf_counter()
-    up_tree_root = upperbound_node(ubcv_info, capabilities, agents, nodes_constraints, query_nodeId=0)
-    end = time.perf_counter()
-
-    print("UP Tree:", up_tree_root, "\ttime:", end - start)
-
-    start = time.perf_counter()
     nodes_upper_bound = upperbound_node_all(children_info, ubcv_info, capabilities, agents, nodes_constraints, query_nodeId=0)
-    end = time.perf_counter()
-
-    print("UP1:", nodes_upper_bound[0], "\ttime:", end - start)
-
-    start = time.perf_counter()
     nodes_upper_bound_min = upperbound_node_all_min(nodes_upper_bound, node_type_info, children_info, query_nodeId=0)
     end = time.perf_counter()
+    
+    print("UPPER BOUND:", nodes_upper_bound_min[0], "\ttime:", end - start)
 
-    result_row["upper_bound"] = nodes_upper_bound_min[0]
+    return nodes_upper_bound_min[0]
 
-    print("UP2:", nodes_upper_bound_min[0], "\ttime:", end - start)
 
+def solve_random_solution(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
     start = time.perf_counter()
     rand_sol_alloc, rand_sol_reward = random_solution_and_or_tree(node_type_info, children_info, leaf2task, tasks, agents, constraints, gamma)
     end = time.perf_counter()
 
-    result_row["random_solution"] = {
+    print(f"Random: {rand_sol_reward}\ttime: {end - start}")
+
+    return {
         "reward": rand_sol_reward,
         "time": end - start,
     }
 
-    print(f"Random: {rand_sol_reward}\ttime: {end - start}")
 
+def solve_treeGNE_1(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
     start = time.perf_counter()
     result_c = treeGNE(
         node_type_info=node_type_info,
@@ -109,16 +100,17 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     )
     end = time.perf_counter()
 
-    result_row["treeGNE"] = {
+    print(f"TreeGNE: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
+
+    return {
         "reward": result_c[1][0],
         "time": end - start,
         "iteration": result_c[2],
         "re-assignment": result_c[3],
     }
 
-
-    print(f"TreeGNE: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
-
+def solve_treeGNE_2(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
+    
     start = time.perf_counter()
     result_c = treeGNE2(
         node_type_info=node_type_info,
@@ -133,16 +125,17 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     )
     end = time.perf_counter()
 
-    result_row["treeGNE2"] = {
+    print(f"TreeGNE2: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
+
+    return {
         "reward": result_c[1][0],
         "time": end - start,
         "iteration": result_c[2],
         "re-assignment": result_c[3],
     }
 
-    print(f"TreeGNE2: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
 
-
+def solve_fastTreeGNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
     start = time.perf_counter()
     result_c = fastTreeGNE2(
         node_type_info=node_type_info,
@@ -157,16 +150,17 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     )
     end = time.perf_counter()
 
-    result_row["fastTreeGNE2"] = {
+    print(f"fastTreeGNE2: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
+
+    return {
         "reward": result_c[1][0],
         "time": end - start,
         "iteration": result_c[2],
         "re-assignment": result_c[3],
     }
 
-    print(f"fastTreeGNE2: {result_c[1][0]}\ttime: {end - start}\titeration: {result_c[2]}\tre-assignment {result_c[3]}")
 
-
+def solve_simpleGNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
     start = time.perf_counter()
     r_coalition_structure, r_sys_reward, r_iteration_count_1, r_re_assignment_count_1, r_iteration_count_2, r_re_assignment_count_2, r_loop_count = simpleGNE(
         node_type_info=node_type_info,
@@ -179,7 +173,10 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     )
     end = time.perf_counter()
 
-    result_row["simpleGNE"] = {
+    
+    print(f"simpleGNE: {r_sys_reward}\ttime: {end - start}\titeration 1: {r_iteration_count_1}\tre-assignment 1 {r_re_assignment_count_1}\titeration 2: {r_iteration_count_2}\tre-assignment 2 {r_re_assignment_count_2}\tloop: {r_loop_count}")
+
+    return {
         "reward": r_sys_reward,
         "time": end - start,
         "iteration_1": r_iteration_count_1,
@@ -189,10 +186,15 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         "loop": r_loop_count,
     }
 
-    print(f"simpleGNE: {r_sys_reward}\ttime: {end - start}\titeration 1: {r_iteration_count_1}\tre-assignment 1 {r_re_assignment_count_1}\titeration 2: {r_iteration_count_2}\tre-assignment 2 {r_re_assignment_count_2}\tloop: {r_loop_count}")
 
-
+def solve_AOSearchGNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
     start = time.perf_counter()
+    leaves_list_info = get_leaves_list_info(parent_info=parent_info, leaf_nodes=leaf_nodes)
+    nodes_constraints = get_nodes_constraints(node_type_info=node_type_info, leaves_list_info=leaves_list_info, leaf2task=leaf2task, constraints=constraints)
+    tasks_capVecs = get_cap_vector_all(capabilities, tasks)
+    ubcv_info = calculate_ubc_vectors(node_type_info, parent_info, leaves_list_info, leaf2task, tasks_capVecs, capabilities, query_nodeId=0)
+    nodes_upper_bound = upperbound_node_all(children_info, ubcv_info, capabilities, agents, nodes_constraints, query_nodeId=0)
+    nodes_upper_bound_min = upperbound_node_all_min(nodes_upper_bound, node_type_info, children_info, query_nodeId=0)
     raos_coalition_structure, raos_sys_reward, raos_iteration_count, raos_re_assignment_count, raos_loop_count = AOsearchGNE(
         node_type_info=node_type_info,
         children_info=children_info,
@@ -209,7 +211,10 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     )
     end = time.perf_counter()
 
-    result_row["AOsearchGNE"] = {
+
+    print(f"AOsearchGNE: {raos_sys_reward}\ttime: {end - start}\titeration: {raos_iteration_count}\tre-assignment {raos_re_assignment_count}\tloop: {raos_loop_count}")
+
+    return {
         "reward": raos_sys_reward,
         "time": end - start,
         "iteration": raos_iteration_count,
@@ -217,10 +222,14 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
         "loop": raos_loop_count,
     }
 
-    print(f"AOsearchGNE: {raos_sys_reward}\ttime: {end - start}\titeration: {raos_iteration_count}\tre-assignment {raos_re_assignment_count}\tloop: {raos_loop_count}")
 
-
+def solve_OrNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
+    
     start = time.perf_counter()
+    leaves_list_info = get_leaves_list_info(parent_info=parent_info, leaf_nodes=leaf_nodes)
+    nodes_constraints = get_nodes_constraints(node_type_info=node_type_info, leaves_list_info=leaves_list_info, leaf2task=leaf2task, constraints=constraints)
+    tasks_capVecs = get_cap_vector_all(capabilities, tasks)
+    ubcv_info = calculate_ubc_vectors(node_type_info, parent_info, leaves_list_info, leaf2task, tasks_capVecs, capabilities, query_nodeId=0)
     rorne_alloc, rorne_sys_reward, rorne_iteration_count, rorne_re_assignment_count = BnBOrNE(
         node_type_info=node_type_info,
         children_info=children_info,
@@ -240,17 +249,22 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     )
     end = time.perf_counter()
 
-    result_row["OrNE"] = {
+    print(f"OrNE: {rorne_sys_reward}\ttime: {end - start}\titeration: {rorne_iteration_count}\tre-assignment {rorne_re_assignment_count}")
+
+    return {
         "reward": rorne_sys_reward,
         "time": end - start,
         "iteration": rorne_iteration_count,
         "re-assignment": rorne_re_assignment_count,
     }
 
-    print(f"OrNE: {rorne_sys_reward}\ttime: {end - start}\titeration: {rorne_iteration_count}\tre-assignment {rorne_re_assignment_count}")
 
-
+def solve_BnBOrNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
     start = time.perf_counter()
+    leaves_list_info = get_leaves_list_info(parent_info=parent_info, leaf_nodes=leaf_nodes)
+    nodes_constraints = get_nodes_constraints(node_type_info=node_type_info, leaves_list_info=leaves_list_info, leaf2task=leaf2task, constraints=constraints)
+    tasks_capVecs = get_cap_vector_all(capabilities, tasks)
+    ubcv_info = calculate_ubc_vectors(node_type_info, parent_info, leaves_list_info, leaf2task, tasks_capVecs, capabilities, query_nodeId=0)
     rorne_alloc, rorne_sys_reward, rorne_iteration_count, rorne_re_assignment_count = BnBOrNE(
         node_type_info=node_type_info,
         children_info=children_info,
@@ -269,17 +283,23 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     )
     end = time.perf_counter()
 
-    result_row["BnBOrNE"] = {
+    print(f"BnBOrNE: {rorne_sys_reward}\ttime: {end - start}\titeration: {rorne_iteration_count}\tre-assignment {rorne_re_assignment_count}")
+
+    return {
         "reward": rorne_sys_reward,
         "time": end - start,
         "iteration": rorne_iteration_count,
         "re-assignment": rorne_re_assignment_count,
     }
 
-    print(f"BnBOrNE: {rorne_sys_reward}\ttime: {end - start}\titeration: {rorne_iteration_count}\tre-assignment {rorne_re_assignment_count}")
 
-
+def solve_BnBOrNE_skip(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
+    
     start = time.perf_counter()
+    leaves_list_info = get_leaves_list_info(parent_info=parent_info, leaf_nodes=leaf_nodes)
+    nodes_constraints = get_nodes_constraints(node_type_info=node_type_info, leaves_list_info=leaves_list_info, leaf2task=leaf2task, constraints=constraints)
+    tasks_capVecs = get_cap_vector_all(capabilities, tasks)
+    ubcv_info = calculate_ubc_vectors(node_type_info, parent_info, leaves_list_info, leaf2task, tasks_capVecs, capabilities, query_nodeId=0)
     rorne_alloc, rorne_sys_reward, rorne_iteration_count, rorne_re_assignment_count = BnBOrNE(
         node_type_info=node_type_info,
         children_info=children_info,
@@ -299,31 +319,80 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     )
     end = time.perf_counter()
 
-    result_row["BnBOrNEskip"] = {
+    print(f"BnBOrNEskip: {rorne_sys_reward}\ttime: {end - start}\titeration: {rorne_iteration_count}\tre-assignment {rorne_re_assignment_count}")
+
+    return {
         "reward": rorne_sys_reward,
         "time": end - start,
         "iteration": rorne_iteration_count,
         "re-assignment": rorne_re_assignment_count,
     }
 
-    print(f"BnBOrNEskip: {rorne_sys_reward}\ttime: {end - start}\titeration: {rorne_iteration_count}\tre-assignment {rorne_re_assignment_count}")
+
+def solve_dnfGNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
+    start = time.perf_counter()
+    leaves_list_info = get_leaves_list_info(parent_info=parent_info, leaf_nodes=leaf_nodes)
+    nodes_constraints = get_nodes_constraints(node_type_info=node_type_info, leaves_list_info=leaves_list_info, leaf2task=leaf2task, constraints=constraints)
+    tasks_capVecs = get_cap_vector_all(capabilities, tasks)
+    ubcv_info = calculate_ubc_vectors(node_type_info, parent_info, leaves_list_info, leaf2task, tasks_capVecs, capabilities, query_nodeId=0)
+    nodes_upper_bound = upperbound_node_all(children_info, ubcv_info, capabilities, agents, nodes_constraints, query_nodeId=0)
+    nodes_upper_bound_min = upperbound_node_all_min(nodes_upper_bound, node_type_info, children_info, query_nodeId=0)
+    rdnf_coalition_structure, rdnf_system_reward, rdnf_total_assessment_count, rdnf_iteration_count, rdnf_re_assignment_count = dnfGNE(
+        node_type_info=node_type_info,
+        children_info=children_info,
+        leaf2task=leaf2task,
+        tasks=tasks,
+        agents=agents,
+        constraints=constraints,
+        capabilities=capabilities,
+        nodes_upper_bound=nodes_upper_bound,
+        nodes_upper_bound_min=nodes_upper_bound_min,
+        gamma=gamma,
+    )
+    end = time.perf_counter()
+    print(f"dnfGNE: {rdnf_system_reward}\ttime: {end - start}\tassessment: {rdnf_total_assessment_count}\titeration: {rdnf_iteration_count}\tre-assignment {rdnf_re_assignment_count}")
+
+    return {
+        "reward": rdnf_system_reward,
+        "time": end - start,
+        "assessment": rdnf_total_assessment_count,
+        "iteration": rdnf_iteration_count,
+        "re-assignment": rdnf_re_assignment_count,
+    }
 
 
-    # start = time.perf_counter()
-    # rdnf_coalition_structure, rdnf_system_reward, rdnf_total_assessment_count, rdnf_iteration_count, rdnf_re_assignment_count = dnfGNE(
-    #     node_type_info=node_type_info,
-    #     children_info=children_info,
-    #     leaf2task=leaf2task,
-    #     tasks=tasks,
-    #     agents=agents,
-    #     constraints=constraints,
-    #     capabilities=capabilities,
-    #     nodes_upper_bound=nodes_upper_bound,
-    #     nodes_upper_bound_min=nodes_upper_bound_min,
-    #     gamma=gamma,
-    # )
-    # end = time.perf_counter()
-    # print(f"dnfGNE: {rdnf_system_reward}\ttime: {end - start}\tassessment: {rdnf_total_assessment_count}\titeration: {rdnf_iteration_count}\tre-assignment {rdnf_re_assignment_count}")
+def main_tree(capabilities, tasks, agents, constraints, gamma):
+
+    """
+    Driver code for algorithms related to AND-OR goal tree.
+    """
+    result_row = {}
+
+    task_num = len(tasks)
+
+    result_row["task_num"] = task_num
+
+    node_type_info, parent_info, children_info, leaf2task, leaf_nodes = generate_tree_problem(tasks)
+
+    result_row["upper_bound"] = solve_get_upper_bound(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+
+    result_row["random_solution"] = solve_random_solution(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+
+    result_row["treeGNE"] = solve_treeGNE_1(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+
+    result_row["treeGNE2"] = solve_treeGNE_2(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+
+    result_row["fastTreeGNE2"] = solve_fastTreeGNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+
+    result_row["simpleGNE"] = solve_simpleGNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+
+    result_row["AOsearchGNE"] = solve_AOSearchGNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+
+    result_row["OrNE"] = solve_OrNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+
+    result_row["BnBOrNE"] = solve_BnBOrNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+
+    result_row["BnBOrNEskip"] = solve_BnBOrNE_skip(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
 
     return result_row
 
