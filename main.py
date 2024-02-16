@@ -437,7 +437,7 @@ def main_original_opd_fms(tasks, agents, constraints, gamma, t_max_edge, result,
     return t_max_edge, result, time_bound
 
 
-def main_run(task_num, agent_num, capNum, ex_identifier):
+def main_run(task_num, agent_num, capNum, run_num, min_t_max_edge, max_t_max_edge, ex_identifier):
     gamma = 1
     a_min_edge = 1
 
@@ -449,14 +449,12 @@ def main_run(task_num, agent_num, capNum, ex_identifier):
 
     capabilities = list(range(0, capNum))
 
-    run_num = 5
-
     for run in range(0, run_num):
         print("----------------------------------------------------------------------")
         print("ITERATION:", run)
         print("----------------------------------------------------------------------")
-        t_max_edge = 3
-        while t_max_edge <= 50:
+        t_max_edge = min_t_max_edge
+        while t_max_edge <= max_t_max_edge:
             
             ex_identifier += 1
 
@@ -594,11 +592,14 @@ def main():
 
     ex_identifier = 0
 
-    for task_num in range(100, 1000, 1):
-        for agent_tasks_ratio in range(1, 10, 1):
+    for task_num in range(100, 1000):
+        for agent_tasks_ratio in range(1, 4):
             agent_num = task_num * agent_tasks_ratio
-            for capNum in range(10, 15, 1):
-                ex_identifier = main_run(task_num, agent_num, capNum, ex_identifier)
+            for capNum in range(10, 15):
+                run_num = 3
+                min_t_max_edge = 3
+                max_t_max_edge = 20
+                ex_identifier = main_run(task_num, agent_num, capNum, run_num, min_t_max_edge, max_t_max_edge, ex_identifier)
 
 
 if __name__ == "__main__":
