@@ -437,21 +437,19 @@ def main_original_opd_fms(tasks, agents, constraints, gamma, t_max_edge, result,
     return t_max_edge, result, time_bound
 
 
-def main():
-    run_num = 1000
+def main_run(task_num, agent_num, capNum, ex_identifier):
     gamma = 1
     a_min_edge = 1
 
-    capNum = 10
     max_capVal = 10
     max_capNum_task = 10
     max_capNum_agent = 10
     ex_identifier = 0
     time_bound = 600
-    task_num = 100
-    agent_num = 200
 
     capabilities = list(range(0, capNum))
+
+    run_num = 5
 
     for run in range(0, run_num):
         print("----------------------------------------------------------------------")
@@ -494,6 +492,7 @@ def main():
                 "ex_identifier": ex_identifier,
                 "task_num": task_num,
                 "agent_num": agent_num,
+                "capNum": capNum,
                 "up": up,
                 "up2": up2,
             }
@@ -588,7 +587,18 @@ def main():
             # increase the task_num
             t_max_edge += 1
         
-        
+    return ex_identifier
+
+
+def main():
+
+    ex_identifier = 0
+
+    for task_num in range(100, 1000, 1):
+        for agent_tasks_ratio in range(1, 10, 1):
+            agent_num = task_num * agent_tasks_ratio
+            for capNum in range(10, 15, 1):
+                ex_identifier = main_run(task_num, agent_num, capNum, ex_identifier)
 
 
 if __name__ == "__main__":
