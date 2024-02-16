@@ -593,7 +593,7 @@ def main():
     ex_identifier = 0
 
     for task_num in range(100, 1000):
-        for agent_tasks_ratio in range(1, 4):
+        for agent_tasks_ratio in range(2, 5):
             agent_num = task_num * agent_tasks_ratio
             for capNum in range(10, 15):
                 run_num = 3
