@@ -1,6 +1,7 @@
 from functools import reduce  # python3 compatibility
 from operator import mul
 import json
+import math
 import os
 import random
 import statistics
@@ -437,169 +438,147 @@ def main_original_opd_fms(tasks, agents, constraints, gamma, t_max_edge, result,
     return t_max_edge, result, time_bound
 
 
-def main_run(task_num, agent_num, capNum, run_num, min_t_max_edge, max_t_max_edge, ex_identifier):
+def main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge, ex_identifier):
+    
     gamma = 1
-    a_min_edge = 1
 
-    max_capVal = 10
-    max_capNum_task = 10
-    max_capNum_agent = 10
-    ex_identifier = 0
+    max_capVal = capNum
+    max_capNum_task = capNum
+    max_capNum_agent = capNum
     time_bound = 600
 
     capabilities = list(range(0, capNum))
 
-    for run in range(0, run_num):
-        print("----------------------------------------------------------------------")
-        print("ITERATION:", run)
-        print("----------------------------------------------------------------------")
-        t_max_edge = min_t_max_edge
-        while t_max_edge <= max_t_max_edge:
-            
-            ex_identifier += 1
+    # agent_num = np.random.randint(task_num,3*task_num)
+    tasks = gen_tasks(task_num, max_capNum_task, capabilities)
+    constraints = gen_constraints(agent_num, task_num, 1, a_min_edge, t_max_edge)
+    a_taskInds = constraints[0]
+    agents_cap, agents = gen_agents(a_taskInds, tasks, max_capNum_agent, capabilities, max_capVal)
+    # num_com = np.prod([1 if a_taskInds[i] == [] else len(a_taskInds[i])+1 for i in range(0,agent_num)])
 
-            print("----------------------------------------------------------------------")
-            print("EX IDENTIFIER:", ex_identifier)
-            print("----------------------------------------------------------------------")
+    num_com = reduce(
+        mul,
+        [
+            1 if a_taskInds[i] == [] else len(a_taskInds[i]) + 1
+            for i in range(0, agent_num)
+        ],
+    )
 
-            #         agent_num = np.random.randint(task_num,3*task_num)
-            tasks = gen_tasks(task_num, max_capNum_task, capabilities)
-            constraints = gen_constraints(
-                agent_num, task_num, 1, a_min_edge, t_max_edge
-            )
-            a_taskInds = constraints[0]
-            agents_cap, agents = gen_agents(
-                a_taskInds, tasks, max_capNum_agent, capabilities, max_capVal
-            )
-            # num_com = np.prod([1 if a_taskInds[i] == [] else len(a_taskInds[i])+1 for i in range(0,agent_num)])
+    up = upperBound(capabilities, tasks, agents)
 
-            num_com = reduce(
-                mul,
-                [
-                    1 if a_taskInds[i] == [] else len(a_taskInds[i]) + 1
-                    for i in range(0, agent_num)
-                ],
-            )
+    up2 = upperBound_ver2(capabilities, tasks, agents, constraints)
+    print("UP:", up, "  UP2:", up2)
 
-            up = upperBound(capabilities, tasks, agents)
+    result_info = {
+        "ex_identifier": ex_identifier,
+        "task_num": task_num,
+        "agent_num": agent_num,
+        "capNum": capNum,
+        "up": up,
+        "up2": up2,
+    }
+    #         data = {"ex_identifier":ex_identifier,"tasks":tasks,"constraints":constraints,"agents_cap":agents_cap,"agents":agents}
 
-            up2 = upperBound_ver2(capabilities, tasks, agents, constraints)
-            print("UP:", up, "  UP2:", up2)
+    a_den = [len(c) for c in constraints[0]]
+    t_den = [len(c) for c in constraints[1]]
+    result_info["a_den_avg"] = statistics.mean(a_den)
+    result_info["a_den_max"] = max(a_den)
+    result_info["a_den_min"] = min(a_den)
 
-            result = {
-                "ex_identifier": ex_identifier,
-                "task_num": task_num,
-                "agent_num": agent_num,
-                "capNum": capNum,
-                "up": up,
-                "up2": up2,
-            }
-            #         data = {"ex_identifier":ex_identifier,"tasks":tasks,"constraints":constraints,"agents_cap":agents_cap,"agents":agents}
+    result_info["t_den_avg"] = statistics.mean(t_den)
+    result_info["t_den_max"] = max(t_den)
+    result_info["t_den_min"] = min(t_den)
+    result_info["t_max_edge"] = t_max_edge
 
-            a_den = [len(c) for c in constraints[0]]
-            t_den = [len(c) for c in constraints[1]]
-            result["a_den_avg"] = statistics.mean(a_den)
-            result["a_den_max"] = max(a_den)
-            result["a_den_min"] = min(a_den)
+    print(
+        "density", t_max_edge, "task_num:", task_num, "  agent_num:", agent_num
+    )
+    print(
+        "a_den_avg",
+        result_info["a_den_avg"],
+        "a_den_max:",
+        result_info["a_den_max"],
+        "  a_den_min:",
+        result_info["a_den_min"],
+    )
 
-            result["t_den_avg"] = statistics.mean(t_den)
-            result["t_den_max"] = max(t_den)
-            result["t_den_min"] = min(t_den)
-            result["t_max_edge"] = t_max_edge
+    print(
+        "t_den_avg",
+        result_info["t_den_avg"],
+        "t_den_max:",
+        result_info["t_den_max"],
+        "  t_den_min:",
+        result_info["t_den_min"],
+    )
+    print("-----------------------------------")
+    print("Heterogeneous Tasks")
+    print("-----------------------------------")
 
-            print(
-                "density", t_max_edge, "task_num:", task_num, "  agent_num:", agent_num
-            )
-            print(
-                "a_den_avg",
-                result["a_den_avg"],
-                "a_den_max:",
-                result["a_den_max"],
-                "  a_den_min:",
-                result["a_den_min"],
-            )
+    start = time.perf_counter()
+    r = eGreedy2(agents, tasks, constraints, gamma=gamma)
+    end = time.perf_counter()
+    result_info["g"] = r[1]
+    result_info["g_iter"] = r[2]
+    result_info["g_reass"] = r[3]
+    result_info["g_t"] = end - start
+    print(
+        "eGreedy:",
+        "\ttime:",
+        result_info["g_t"],
+        "\tresult:",
+        result_info["g"],
+        "\titeration:",
+        result_info["g_iter"],
+        "\tre-assignment",
+        result_info["g_reass"],
+    )
 
-            print(
-                "t_den_avg",
-                result["t_den_avg"],
-                "t_den_max:",
-                result["t_den_max"],
-                "  t_den_min:",
-                result["t_den_min"],
-            )
-            print("-----------------------------------")
-            print("Heterogeneous Tasks")
-            print("-----------------------------------")
+    start = time.perf_counter()
+    rand_sol_a, rand_sol_reward = random_solution_heterogeneous(agents, tasks, constraints, gamma=gamma)
+    end = time.perf_counter()
+    print("Random Solution:", "\ttime:", end - start, "\tresult:", rand_sol_reward)
 
-            start = time.perf_counter()
-            r = eGreedy2(agents, tasks, constraints, gamma=gamma)
-            end = time.perf_counter()
-            result["g"] = r[1]
-            result["g_iter"] = r[2]
-            result["g_reass"] = r[3]
-            result["g_t"] = end - start
-            print(
-                "eGreedy:",
-                "\ttime:",
-                result["g_t"],
-                "\tresult:",
-                result["g"],
-                "\titeration:",
-                result["g_iter"],
-                "\tre-assignment",
-                result["g_reass"],
-            )
+    print("-----------------------------------")
+    print("AND-OR Tree Tasks")
+    print("-----------------------------------")
 
-            start = time.perf_counter()
-            rand_sol_a, rand_sol_reward = random_solution_heterogeneous(agents, tasks, constraints, gamma=gamma)
-            end = time.perf_counter()
-            print("Random Solution:", "\ttime:", end - start, "\tresult:", rand_sol_reward)
+    result_row = main_tree(capabilities, tasks, agents, constraints, gamma)
+    result_row["info"] = result_info
 
-            print("-----------------------------------")
-            print("AND-OR Tree Tasks")
-            print("-----------------------------------")
-
-            result_row = main_tree(capabilities, tasks, agents, constraints, gamma)
-            result_row["info"] = result
-
-            # append data and result
-            files = {"local-results.jsonl": [result_row, ""]}
-
-
-            for filename in list(files.keys()):
-                append_record(files[filename][0], filename, typ=files[filename][1])
-
-
-            # print("-----------------------------------")
-            # print("Heterogeneous Tasks (OPD, FMS)")
-            # print("-----------------------------------")
-
-            # t_max_edge, result, time_bound = main_original_opd_fms(tasks, agents, constraints, gamma, t_max_edge, result, time_bound)
-
-            # # append data and result
-            # files = {"density100_result_cap": [result, ""]}
-
-            # for filename in list(files.keys()):
-            #     append_record(files[filename][0], filename, typ=files[filename][1])
-
-            # increase the task_num
-            t_max_edge += 1
-        
-    return ex_identifier
+    return result_row
 
 
 def main():
 
     ex_identifier = 0
 
+    if os.path.exists("local-results.jsonl"):
+        os.remove("local-results.jsonl")
+
     for task_num in range(100, 1000):
         for agent_tasks_ratio in range(2, 5):
             agent_num = task_num * agent_tasks_ratio
             for capNum in range(10, 15):
                 run_num = 3
-                min_t_max_edge = 3
-                max_t_max_edge = 20
-                ex_identifier = main_run(task_num, agent_num, capNum, run_num, min_t_max_edge, max_t_max_edge, ex_identifier)
+                a_min_edge = 2
+                for run in range(0, run_num):
+                    print("----------------------------------------------------------------------")
+                    print("ITERATION:", run)
+                    print("----------------------------------------------------------------------")
+                    min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
+                    max_t_max_edge = min_t_max_edge + 25
+                    for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1, 5):
+                        ex_identifier += 1
+                        print("----------------------------------------------------------------------")
+                        print("EX IDENTIFIER:", ex_identifier)
+                        print("----------------------------------------------------------------------")
+                        result_row = main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge, ex_identifier)
+                        # append data and result
+                        files = {"local-results.jsonl": [result_row, ""]}
+
+                        for filename in list(files.keys()):
+                            append_record(files[filename][0], filename, typ=files[filename][1])
+
 
 
 if __name__ == "__main__":
