@@ -555,7 +555,7 @@ def main():
     if os.path.exists("local-results.jsonl"):
         os.remove("local-results.jsonl")
 
-    for task_num in range(100, 1000):
+    for task_num in range(100, 1000, 100):
         for agent_tasks_ratio in range(2, 5):
             agent_num = task_num * agent_tasks_ratio
             for capNum in range(10, 15):
@@ -566,7 +566,7 @@ def main():
                     print("ITERATION:", run)
                     print("----------------------------------------------------------------------")
                     min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
-                    max_t_max_edge = min_t_max_edge + 25
+                    max_t_max_edge = min_t_max_edge + 5 * 3
                     for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1, 5):
                         ex_identifier += 1
                         print("----------------------------------------------------------------------")
