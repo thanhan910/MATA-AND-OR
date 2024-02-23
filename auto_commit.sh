@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Navigate to repo
+cd /workspaces/MATA-AND-OR
+
 # Add all changes
 git add .
 
