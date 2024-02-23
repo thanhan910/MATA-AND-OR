@@ -7,6 +7,7 @@ import random
 import statistics
 import argparse
 import concurrent.futures
+from multiprocessing import Pool
 
 from utils.problem import gen_tasks, gen_constraints, gen_agents
 
@@ -584,19 +585,25 @@ def main_single(filename = "local-results.jsonl", remove_file = False):
     
     ex_identifier = 0
 
-    for task_num in range(100, 1000, 100):
+    for task_num in range(300, 1100, 100):
         for agent_tasks_ratio in range(2, 5):
             agent_num = task_num * agent_tasks_ratio
             for capNum in range(10, 15):
-                run_num = 3
                 a_min_edge = 2
-                for run in range(0, run_num):
-                    # print("----------------------------------------------------------------------")
-                    # print("ITERATION:", run)
-                    # print("----------------------------------------------------------------------")
-                    min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
-                    max_t_max_edge = min_t_max_edge + 5 * 3
-                    for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1, 5):
+                min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
+                max_t_max_edge = min_t_max_edge + 5 * 3
+                for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1):
+                    run_num = 3
+                    for run in range(0, run_num):
+                        # print("----------------------------------------------------------------------")
+                        # print("EXPERIMENT")
+                        # print("----------------------------------------------------------------------")
+                        # result_row = main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge)
+                        # # append data and result
+                        # files = {"local-results.jsonl": [result_row, ""]}
+
+                        # for filename in list(files.keys()):
+                        #     append_record(files[filename][0], filename, typ=files[filename][1])
                         ex_identifier += 1
                         print("----------------------------------------------------------------------")
                         print("EX IDENTIFIER:", ex_identifier)
@@ -692,24 +699,18 @@ def main_cli():
             for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1):
                 run_num = 3
                 for run in range(0, run_num):
-                    result_row = main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge)
-                    # append data and result
-                    files = {"local-results.jsonl": [result_row, ""]}
-
-                    for filename in list(files.keys()):
-                        append_record(files[filename][0], filename, typ=files[filename][1])
+                    result_row = main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge, None, "local-results.jsonl")
 
 
 
 
 def main_multiprocessing():
-    from multiprocessing import Pool
 
     args = []
 
     ex_identifier = 0
 
-    for task_num in range(100, 1100, 100):
+    for task_num in range(300, 1100, 100):
         for agent_tasks_ratio in range(2, 5):
             agent_num = task_num * agent_tasks_ratio
             for capNum in range(10, 15):
@@ -757,5 +758,5 @@ def main_multithread():
         executor.map(main_run_1, args)
 
 if __name__ == "__main__":
-    # main_single(filename='results-1000-full.jsonl')
-    main_multiprocessing()
+    main_single(filename='results-1000-3.jsonl')
+    # main_multiprocessing()
