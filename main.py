@@ -5,6 +5,8 @@ import math
 import os
 import random
 import statistics
+import argparse
+import concurrent.futures
 
 from utils.problem import gen_tasks, gen_constraints, gen_agents
 
@@ -55,7 +57,7 @@ def generate_tree_problem(tasks):
 
     node_type_info = assign_node_type(depth_info, children_info, leaf_nodes)
 
-    return node_type_info, parent_info, children_info, leaf2task, leaf_nodes
+    return node_type_info, parent_info, children_info, leaf2task, leaf_nodes, leaves_by_depth, depth_info
 
 
 def solve_get_upper_bound(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
@@ -373,7 +375,26 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
 
     result_row["task_num"] = task_num
 
-    node_type_info, parent_info, children_info, leaf2task, leaf_nodes = generate_tree_problem(tasks)
+    node_type_info, parent_info, children_info, leaf2task, leaf_nodes, leaves_by_depth, depth_info = generate_tree_problem(tasks)
+
+    max_depth = len(leaves_by_depth) - 1
+    min_depth = 0
+    while len(leaves_by_depth[min_depth]) == 0:
+        min_depth += 1
+
+    branching_factor = (len(node_type_info) - 1) / len(children_info)
+    min_degree = min([len(c) for c in children_info.values()])
+    max_degree = max([len(c) for c in children_info.values()])
+    num_internal_nodes = len(children_info)
+
+    result_row["tree_info"] = {
+        "max_depth": max_depth,
+        "min_depth": min_depth,
+        "branching_factor": branching_factor,
+        "min_degree": min_degree,
+        "max_degree": max_degree,
+        "num_internal_nodes": num_internal_nodes,
+    }
 
     result_row["upper_bound"] = solve_get_upper_bound(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
 
@@ -438,7 +459,7 @@ def main_original_opd_fms(tasks, agents, constraints, gamma, t_max_edge, result,
     return t_max_edge, result, time_bound
 
 
-def main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge, ex_identifier):
+def main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge, ex_identifier = None, save_to_file = None):
     
     gamma = 1
 
@@ -545,15 +566,23 @@ def main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge, ex_identifier)
     result_row = main_tree(capabilities, tasks, agents, constraints, gamma)
     result_row["info"] = result_info
 
+    if save_to_file:
+        append_record(result_row, save_to_file, typ="")
+
     return result_row
 
 
-def main():
+def main_run_1(args):
+    return main_run(*args)
 
+
+def main_single(remove_file = False):
+
+    if remove_file:
+        if os.path.exists("local-results.jsonl"):
+            os.remove("local-results.jsonl")
+    
     ex_identifier = 0
-
-    if os.path.exists("local-results.jsonl"):
-        os.remove("local-results.jsonl")
 
     for task_num in range(100, 1000, 100):
         for agent_tasks_ratio in range(2, 5):
@@ -562,9 +591,9 @@ def main():
                 run_num = 3
                 a_min_edge = 2
                 for run in range(0, run_num):
-                    print("----------------------------------------------------------------------")
-                    print("ITERATION:", run)
-                    print("----------------------------------------------------------------------")
+                    # print("----------------------------------------------------------------------")
+                    # print("ITERATION:", run)
+                    # print("----------------------------------------------------------------------")
                     min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
                     max_t_max_edge = min_t_max_edge + 5 * 3
                     for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1, 5):
@@ -580,6 +609,158 @@ def main():
                             append_record(files[filename][0], filename, typ=files[filename][1])
 
 
+def main_cli_full_args():
+
+    parser = argparse.ArgumentParser(description="Run the main function.")
+    parser.add_argument(
+        "--task_num",
+        type=int,
+        default=100,
+        help="Number of tasks to generate.",
+    )
+    parser.add_argument(
+        "--agent_num",
+        type=int,
+        default=200,
+        help="Number of agents to generate.",
+    )
+    parser.add_argument(
+        "--capNum",
+        type=int,
+        default=10,
+        help="Number of capabilities to generate.",
+    )
+    parser.add_argument(
+        "--t_max_edge",
+        type=int,
+        default=15,
+        help="Maximum number of edges to generate.",
+    )
+    parser.add_argument(
+        "--a_min_edge",
+        type=int,
+        default=2,
+        help="Minimum number of edges to generate.",
+    )
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=0,
+        help="Number of iterations to run.",
+    )
+
+    args = parser.parse_args()
+
+    if args.iterations == 0:
+        args.iterations = 3
+
+    for run in range(0, args.iterations):
+        result_row = main_run(
+            args.task_num,
+            args.agent_num,
+            args.capNum,
+            args.t_max_edge,
+            args.a_min_edge,
+            None,
+            'results-cli.jsonl',
+        )
+
+
+def main_cli():
+
+    parser = argparse.ArgumentParser(description="Run by task_num.")
+    parser.add_argument(
+        "--task_num",
+        type=int,
+        default=100,
+        help="Number of tasks to generate.",
+    )
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=0,
+        help="Number of iterations to run.",
+    )
+
+    args = parser.parse_args()
+
+    if args.iterations == 0:
+        args.iterations = 3
+
+    task_num = args.task_num
+
+    for agent_tasks_ratio in range(2, 5):
+        agent_num = task_num * agent_tasks_ratio
+        for capNum in range(10, 15):
+            a_min_edge = 2
+            min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
+            max_t_max_edge = max(min_t_max_edge, 50)
+            for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1):
+                run_num = 3
+                for run in range(0, run_num):
+                    result_row = main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge)
+                    # append data and result
+                    files = {"local-results.jsonl": [result_row, ""]}
+
+                    for filename in list(files.keys()):
+                        append_record(files[filename][0], filename, typ=files[filename][1])
+
+
+
+
+def main_multiprocessing():
+    from multiprocessing import Pool
+
+    args = []
+
+    ex_identifier = 0
+
+    for task_num in range(100, 1000, 100):
+        for agent_tasks_ratio in range(2, 5):
+            agent_num = task_num * agent_tasks_ratio
+            for capNum in range(10, 15):
+                a_min_edge = 2
+                min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
+                max_t_max_edge = max(min_t_max_edge, 50)
+                for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1):
+                    run_num = 3
+                    for run in range(0, run_num):
+                        # print("----------------------------------------------------------------------")
+                        # print("EXPERIMENT")
+                        # print("----------------------------------------------------------------------")
+                        # result_row = main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge)
+                        # # append data and result
+                        # files = {"local-results.jsonl": [result_row, ""]}
+
+                        # for filename in list(files.keys()):
+                        #     append_record(files[filename][0], filename, typ=files[filename][1])
+                        ex_identifier += 1
+                        args.append((task_num, agent_num, capNum, t_max_edge, a_min_edge, ex_identifier, "results-multiprocessing.jsonl"))
+
+    with Pool(5) as p:
+        p.map(main_run_1, args) 
+
+def main_multithread():
+
+    ex_identifier = 0
+
+    args = []
+
+    for task_num in range(100, 1000, 100):
+        for agent_tasks_ratio in range(2, 5):
+            agent_num = task_num * agent_tasks_ratio
+            for capNum in range(10, 15):
+                a_min_edge = 2
+                min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
+                max_t_max_edge = max(min_t_max_edge, 50)
+                for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1):
+                    run_num = 3
+                    for run in range(0, run_num):
+                        ex_identifier += 1
+                        args.append((task_num, agent_num, capNum, t_max_edge, a_min_edge, ex_identifier, "results-multithread.jsonl"))
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(main_run_1, args)
 
 if __name__ == "__main__":
-    main()
+    main_single()
