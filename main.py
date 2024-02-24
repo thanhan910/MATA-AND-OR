@@ -592,7 +592,7 @@ def main_single(filename = "local-results.jsonl", remove_file = False):
                 a_min_edge = 2
                 min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
                 max_t_max_edge = min_t_max_edge + 5 * 3
-                for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1):
+                for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1, 3):
                     run_num = 3
                     for run in range(0, run_num):
                         # print("----------------------------------------------------------------------")
@@ -717,7 +717,7 @@ def main_multiprocessing():
                 a_min_edge = 2
                 min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
                 max_t_max_edge = min_t_max_edge + 5 * 3
-                for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1):
+                for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1, 5):
                     run_num = 3
                     for run in range(0, run_num):
                         # print("----------------------------------------------------------------------")
