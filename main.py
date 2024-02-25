@@ -403,19 +403,19 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
 
     result_row["treeGNE"] = solve_treeGNE_1(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
 
-    result_row["treeGNE2"] = solve_treeGNE_2(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+    # result_row["treeGNE2"] = solve_treeGNE_2(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
 
     result_row["fastTreeGNE2"] = solve_fastTreeGNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
 
     result_row["simpleGNE"] = solve_simpleGNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
 
-    result_row["AOsearchGNE"] = solve_AOSearchGNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+    # result_row["AOsearchGNE"] = solve_AOSearchGNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
 
-    result_row["OrNE"] = solve_OrNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+    # result_row["OrNE"] = solve_OrNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
 
     result_row["BnBOrNE"] = solve_BnBOrNE(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
 
-    result_row["BnBOrNEskip"] = solve_BnBOrNE_skip(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
+    # result_row["BnBOrNEskip"] = solve_BnBOrNE_skip(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes)
 
     return result_row
 
@@ -585,7 +585,7 @@ def main_single(filename = "local-results.jsonl", remove_file = False):
     
     ex_identifier = 0
 
-    for task_num in range(300, 1100, 100):
+    for task_num in range(500, 1100, 100):
         for agent_tasks_ratio in range(2, 5):
             agent_num = task_num * agent_tasks_ratio
             for capNum in range(10, 15):
