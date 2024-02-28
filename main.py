@@ -585,7 +585,7 @@ def main_single(filename = "local-results.jsonl", remove_file = False):
     
     ex_identifier = 0
 
-    for task_num in range(500, 1100, 100):
+    for task_num in range(800, 1100, 100):
         for agent_tasks_ratio in range(2, 5):
             agent_num = task_num * agent_tasks_ratio
             for capNum in range(10, 15):
