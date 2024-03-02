@@ -15,7 +15,7 @@ from heterogeneous.GreedyNE import eGreedy2
 from heterogeneous.solutions import *
 from heterogeneous.upper_bound import *
 
-from andortree.tree_gen import gen_tree, assign_node_type
+from andortree.tree_gen import gen_tree, assign_node_type, gen_tree_simple
 from andortree.tree_utils import get_leaves_list_info, get_nodes_constraints
 from andortree.upper_bound import upperbound_node_all, upperbound_node_all_min, upperbound_node, calculate_ubc_vectors, get_cap_vector_all
 # from andortree.GreedyNE import *
@@ -59,6 +59,31 @@ def generate_tree_problem(tasks):
     node_type_info = assign_node_type(depth_info, children_info, leaf_nodes)
 
     return node_type_info, parent_info, children_info, leaf2task, leaf_nodes, leaves_by_depth, depth_info
+
+
+
+def generate_tree_problem_breath_depth(breath, depth):
+    """
+    Encapsulate the generation of variables that represent the tree.
+
+    This is so that only a number of data structures and variable types can be used as initial input to the MATA problem.
+
+    All other variables must be generated within the solution function and/or must be counted as a procedure within the solution, and thus when calculating the solution speed, we must include the time taken to generate those other variables.
+    """
+
+    depth_info, parent_info, children_info, leaves_by_depth = gen_tree_simple(min_depth = depth, max_depth = depth, min_degree = breath, max_degree = breath, min_leaf_depth = depth)
+
+    leaf_nodes = sum(leaves_by_depth, [])
+
+    random.shuffle(leaf_nodes)
+
+    leaf2task = {leaf_id : j for j, leaf_id in enumerate(leaf_nodes)}
+
+    node_type_info = assign_node_type(depth_info, children_info, leaf_nodes)
+
+    return node_type_info, parent_info, children_info, leaf2task, leaf_nodes, leaves_by_depth, depth_info
+
+
 
 
 def solve_get_upper_bound(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes):
@@ -365,18 +390,13 @@ def solve_dnfGNE(capabilities, tasks, agents, constraints, gamma, node_type_info
     }
 
 
-def main_tree(capabilities, tasks, agents, constraints, gamma):
+def solve_tree(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes, leaves_by_depth, depth_info):
 
-    """
-    Driver code for algorithms related to AND-OR goal tree.
-    """
     result_row = {}
 
     task_num = len(tasks)
 
     result_row["task_num"] = task_num
-
-    node_type_info, parent_info, children_info, leaf2task, leaf_nodes, leaves_by_depth, depth_info = generate_tree_problem(tasks)
 
     max_depth = len(leaves_by_depth) - 1
     min_depth = 0
@@ -420,6 +440,16 @@ def main_tree(capabilities, tasks, agents, constraints, gamma):
     return result_row
 
 
+def main_tree(capabilities, tasks, agents, constraints, gamma):
+
+    """
+    Driver code for algorithms related to AND-OR goal tree.
+    """
+    node_type_info, parent_info, children_info, leaf2task, leaf_nodes, leaves_by_depth, depth_info = generate_tree_problem(tasks)
+
+    result_row = solve_tree(capabilities, tasks, agents, constraints, gamma, node_type_info, parent_info, children_info, leaf2task, leaf_nodes, leaves_by_depth, depth_info)
+
+    return result_row
 
 
 def main_original_opd_fms(tasks, agents, constraints, gamma, t_max_edge, result, time_bound):
@@ -458,6 +488,24 @@ def main_original_opd_fms(tasks, agents, constraints, gamma, t_max_edge, result,
     print()
 
     return t_max_edge, result, time_bound
+
+
+def gen_tasks_problem(task_num, agent_num, capNum, t_max_edge, a_min_edge):
+    gamma = 1
+
+    max_capVal = capNum
+    max_capNum_task = capNum
+    max_capNum_agent = capNum
+    time_bound = 600
+
+    capabilities = list(range(0, capNum))
+
+    tasks = gen_tasks(task_num, max_capNum_task, capabilities)
+    constraints = gen_constraints(agent_num, task_num, 1, a_min_edge, t_max_edge)
+    a_taskInds = constraints[0]
+    agents_cap, agents = gen_agents(a_taskInds, tasks, max_capNum_agent, capabilities, max_capVal)
+
+    return capabilities, tasks, agents, constraints, gamma, t_max_edge, time_bound
 
 
 def main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge, ex_identifier = None, save_to_file = None):
@@ -585,7 +633,7 @@ def main_single(filename = "local-results.jsonl", remove_file = False):
     
     ex_identifier = 0
 
-    for task_num in range(800, 1100, 100):
+    for task_num in range(100, 1100, 100):
         for agent_tasks_ratio in range(2, 5):
             agent_num = task_num * agent_tasks_ratio
             for capNum in range(10, 15):
