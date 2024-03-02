@@ -684,40 +684,36 @@ def main_single_breath_depth(filename = "local-results.jsonl", remove_file = Fal
     ex_identifier = 0
 
     min_task_num = 100
-
     max_task_num = 1000
+    breath_depth_task_nums = [(breath, depth, breath ** depth) for breath in range(2, 10) for depth in range(2, 10) if (breath ** depth >= min_task_num) and (breath ** depth < max_task_num)]
 
-    for breath in range(2, 10):
-        for depth in range(2, 10):
-            task_num = breath ** depth
+    breath_depth_task_nums = sorted(breath_depth_task_nums, key=lambda x: x[2])
 
-            if (task_num >= max_task_num ) or (task_num < min_task_num):
-                continue
+    for breath, depth, task_num in breath_depth_task_nums:
+        for agent_tasks_ratio in range(2, 5):
+            agent_num = task_num * agent_tasks_ratio
+            for capNum in range(10, 15):
+                a_min_edge = 2
+                min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
+                max_t_max_edge = min_t_max_edge + 5 * 3
+                for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1, 3):
+                    run_num = 3
+                    for run in range(0, run_num):
+                        # print("----------------------------------------------------------------------")
+                        # print("EXPERIMENT")
+                        # print("----------------------------------------------------------------------")
+                        # result_row = main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge)
+                        # # append data and result
+                        # files = {"local-results.jsonl": [result_row, ""]}
 
-            for agent_tasks_ratio in range(2, 5):
-                agent_num = task_num * agent_tasks_ratio
-                for capNum in range(10, 15):
-                    a_min_edge = 2
-                    min_t_max_edge = max(math.ceil((agent_num * a_min_edge) / task_num), 10)
-                    max_t_max_edge = min_t_max_edge + 5 * 3
-                    for t_max_edge in range(min_t_max_edge, max_t_max_edge + 1, 3):
-                        run_num = 3
-                        for run in range(0, run_num):
-                            # print("----------------------------------------------------------------------")
-                            # print("EXPERIMENT")
-                            # print("----------------------------------------------------------------------")
-                            # result_row = main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge)
-                            # # append data and result
-                            # files = {"local-results.jsonl": [result_row, ""]}
-
-                            # for filename in list(files.keys()):
-                            #     append_record(files[filename][0], filename, typ=files[filename][1])
-                            ex_identifier += 1
-                            print("----------------------------------------------------------------------")
-                            print("EX IDENTIFIER:", ex_identifier)
-                            print("Breath:", breath, "Depth:", depth)
-                            print("----------------------------------------------------------------------")
-                            result_row = main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge, ex_identifier, filename, breath=breath, depth=depth)
+                        # for filename in list(files.keys()):
+                        #     append_record(files[filename][0], filename, typ=files[filename][1])
+                        ex_identifier += 1
+                        print("----------------------------------------------------------------------")
+                        print("EX IDENTIFIER:", ex_identifier)
+                        print("Breath:", breath, "Depth:", depth)
+                        print("----------------------------------------------------------------------")
+                        result_row = main_run(task_num, agent_num, capNum, t_max_edge, a_min_edge, ex_identifier, filename, breath=breath, depth=depth)
 
 
 
