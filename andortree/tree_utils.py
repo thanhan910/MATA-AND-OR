@@ -83,7 +83,7 @@ def traverse_and_or_tree(node_type_info: dict, children_info: dict, depth_info: 
 
     # skipped_nodes = set()
 
-    def traverse_helper(node_id: int) -> list:
+    def traverse_helper(node_id: int):
         
         # print("NODE: ", node_id)
 
